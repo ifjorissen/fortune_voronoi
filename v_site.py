@@ -17,3 +17,6 @@ class Site:
     point = self.p.components()
     color = self.c.components()
     return point, color
+
+  def __str__(self):
+    return "site x:{} y:{}".format(self.x, self.y)

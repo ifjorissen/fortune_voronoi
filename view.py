@@ -385,7 +385,7 @@ def tick(val):
   else:
     V.scanning = False
     update_beachline_buffers()
-  glutTimerFunc(50, tick, 0)
+  glutTimerFunc(15, tick, 0)
 
 
 

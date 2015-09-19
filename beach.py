@@ -1,5 +1,5 @@
 import math
-from circle import Circle, InvalidCircle
+from circle import Circle, InvalidCircle, NotEmptyCircle
 
 class Beach:
   def __init__(self, site, scanline):
@@ -30,48 +30,13 @@ class Beach:
     else:
       return [max(-1.0, x1), min(1.0, x2)]
 
-    #return the breakpoint [inner, outer]
-    #four cases
-    # if (x1 >= h) and (x1 <= a):
+
+    # if (x1 >= a) and (x1 <= h):
     #   return [x1, x2]
 
-    if (x1 >= a) and (x1 <= h):
-      return [x1, x2]
-
-    else:
-      return [x2, x1]
-
-    # elif (x2 >= h) and (x2 <= a):
+    # else:
     #   return [x2, x1]
 
-    # elif (x2 >= a) and (x2 <= h):
-    #   return [x2, x1]
-
-    # else:
-    #   print("we've got a problem a:{} h:{} x1:{} x2:{}".format(a, h, x1, x2))
-
-
-    # print(x1)
-    # print(x2)
-    # if (x1 >= h) and (x1 <= a):
-    #   print("x1 inner bkpt")
-    #   breakpoints = [x1, x2]
-
-    # elif (x2 >= h) and (x2 <= a):
-    #   print("x2 inner bkpt")
-    #   breakpoints = [x2, x1]
-    # else:
-    #   print("??")
-    #   breakpoints = [x1, x2]
-      # if x1 > x2:
-      #   print(" x1 > x2 uh?")
-      #   breakpoints = [x2, 1.0]
-      # else:
-      #   print("x1 <= x2")
-      #   breakpoints = [x1, x2]
-
-      #find the breakpoints for y=1
-    # return breakpoints
   def leftBreakpoint(self, beach):
     #return the left breakpoint of the adjacent beach
     if beach.focus.y is self.directrix.y:
@@ -160,16 +125,8 @@ class BeachODBLL:
     self.tail = tail
     self.beachBuf = []
     self.colorBuf = []
+    self.to_remove = []
 
-  def find_by_x(self, point):
-    ''' given a point (presumable circle.low) and an beachfront, 
-    return the arc directly above it'''
-    cur = self.head
-    while cur is not None:
-      if point.x >= cur.breakl and point.x <= cur.breakr:
-        return cur
-      else:
-        cur = cur.next
 
   def removeCircles(self, bn):
     '''given a beach node, remove all circle events associated with that node'''
@@ -195,21 +152,66 @@ class BeachODBLL:
             bn.prev.prev.circles.remove(circle)
           except:
             pass
+
+  def printDBL(self):
+    pts = []
+    ptr = self.head
+    while ptr is not None:
+      pts.append((ptr,ptr.x))
+      ptr = ptr.next
+    print(pts)
+
+  def validateDBLL(self):
+    ptr = self.head
+    # print("\n******STARTING: VALIDATE BEACHFRONT******")
+    while ptr is not None:
+      if ptr.prev is not None and ptr.prev.next is ptr:
+        print("ptr.prev.next is ptr for {}".format(ptr))
+      else:
+        if ptr.prev is None and ptr is self.head:
+          print("head for ptr{}".format(ptr))
+        else:
+          print("ptr.prev.next is NOT ptr for {}".format(ptr))
+          print("ptr.prev.next is {}".format(ptr.prev.next))
+
+      if ptr.next is not None and ptr.next.prev is ptr:
+        print("ptr.next.prev is ptr for {}".format(ptr))
+      else:
+        if ptr.next is None and ptr is self.tail:
+          print("tail for ptr{}".format(ptr))
+          #to do: make sure this is self.tail
+        else:
+          print("ptr.next.prev is NOT ptr for {}".format(ptr))
+          print("ptr.next.prev is {}".format(ptr.next.prev))
+      ptr = ptr.next
+    self.printDBL()
+    print("******FINISHED: VALIDATE BEACHFRONT******\n")
+
+
+  def circleIsEmpty(self):
+    #make sure there are no sites in the circle
+    pass
     
   def addCircle(self, n1, n2, n3):
     circle_events = []
     newest = min(n1.y, n2.y, n3.y)
+    scanline = n1.beach.directrix
     try:
       circle = Circle(n1.beach.focus, n2.beach.focus, n3.beach.focus)
+      circle.update(scanline)
         #make sure the circle's lowest point is below the scanline (i.e, where we just added the site)
         #note that this isnt quite correct (e.g think abt case where we removed arc & are recomputing)
-      if (circle.low.y < newest) and (circle.low.y > -1.0) and (circle.r < 2.0):
+      # if (circle.low.y < scanline.y) and (circle.low.y > -1.0) and (circle.r < 2.0):
+      if (circle.low.y > -1.0) and (circle.r < 2.0):
+        print("adding a circle @cx {}, cy {}, low {}, dist2scan {})".format(circle.c.x, circle.c.y, circle.low.y, circle.dist2scan))
         n1.circles.append(circle)
         n2.circles.append(circle)
         n3.circles.append(circle)
         circle_events.append(circle)
     except InvalidCircle as IC:
-      print("Not a valid circle {}".format(IC.sites))
+      print("CIRCLE ERROR: Not a valid circle {}".format(IC.sites))
+    except NotEmptyCircle as NEC:
+      print("CIRCLE ERROR: Not an empty circle {} sites included {}".format(NEC.sites, NEC.included))
     return circle_events
 
   #TO DO: insert does not account for degenerate case where the new site
@@ -218,16 +220,14 @@ class BeachODBLL:
     # print("inserting")
     circle_events = []
     bn = BeachNode(beach)
+    self.validateDBLL()
+    print("inserting site @(x{}, y{}) bn{}".format(beach.focus.x, beach.focus.y, bn))
     #list is empty, insert the beach node
     if self.head is None:
       self.head = self.tail = bn
     #list is not empty, insert the beach node
     else:
       ptr = self.head
-      # print("stats: ")
-      # print(ptr.breakl)
-      # print(ptr.breakr)
-      # print(bn.x)
 
       #this is the leftmost breakpoint
       if bn.x <= ptr.breakl:
@@ -258,6 +258,8 @@ class BeachODBLL:
             #make a new node to the right
             rbn = BeachNode(ptr.beach, bn, ptr.next, bn.breakr, ptr.breakr)
             ptr.breakr = bn.breakl
+            if ptr.next:
+              rbn.next.prev = rbn
             bn.next = rbn
             bn.prev = ptr
             ptr.next = bn
@@ -265,26 +267,20 @@ class BeachODBLL:
             #add circle events
             #2 sites to the left
             if bn.prev and bn.prev.prev:
-              # print("two sites to the left")
               circle_events.extend(self.addCircle(bn.prev.prev, bn.prev, bn))
             #we don't need to handle sites to left and right for bn
 
             #two sites to the right
             if bn.next and bn.next.next:
-              # print("two sites to the right")
               circle_events.extend(self.addCircle(bn, bn.next, bn.next.next))
-
-            # do the same for rbn
-            # don't need to handle two sites to the left case
-            #site to the left and right
-            # if rbn.prev and rbn.next:
-            #   print("two sites to the right")
-            #   circle_events.extend(self.addCircle(rbn.prev, rbn, rbn.next))
 
             #two sites to the right
             if rbn.next and rbn.next.next:
               # print("two sites to the right")
               circle_events.extend(self.addCircle(rbn, rbn.next, rbn.next.next))
+
+            if not rbn.next:
+              self.tail = rbn
 
             return circle_events
           else:
@@ -305,62 +301,52 @@ class BeachODBLL:
               ptr = ptr.next
 
 
-
   def remove(self, ptr):
-    # print("gotta remove this {}".format(ptr))
-    # print("ptr.breakl {} breakr {} x {}".format(ptr.breakl, ptr.breakr, ptr.x))
     #find the ptr
     #TO DO: add circle event if necessary
+    print("removing site bn{} @(x{} y{}) with bl {} br {}".format(ptr, ptr.x, ptr.y, ptr.breakl, ptr.breakr))
     circle_events = []
     cur = self.head
     while cur is not None:
       if cur is ptr:
+        #remove circle events associated with this node
         if len(cur.circles) > 0:
-          self.removeCircles(ptr)
-          # print("arc is disappearing, but there are circle events involved")
-          # print([c.c.y for c in ptr.circles])
-        if cur.prev is not None:
-          cur.prev.next = cur.next
-          if cur.next:
-            cur.next.prev = cur.prev
-            if cur.next.next:
-              circle_events.extend(self.addCircle(cur.prev, cur.next, cur.next.next))
-            if cur.prev.prev:
-              circle_events.extend(self.addCircle(cur.prev.prev, cur.prev, cur.next))
-            return circle_events
-        else:
-          #remove the first node
+          self.removeCircles(cur)
+        #special case where we remove the first node, we know it's not the only node
+        if cur is self.head:
           self.head = cur.next
           cur.next.prev = None
           #update circle events
           if cur.next and cur.next.next and cur.next.next.next:
             self.addCircle(cur.next, cur.next.next, cur.next.next.next)
+          self.validateDBLL()
           return circle_events
+        if cur.prev is not None:
+          cur.prev.next = cur.next
+        if cur.next is not None:
+          cur.next.prev = cur.prev
+          self.printDBL()
+          if cur.next.next is not None:
+            circle_events.extend(self.addCircle(cur.prev, cur.next, cur.next.next))
+          if cur.prev.prev is not None:
+            circle_events.extend(self.addCircle(cur.prev.prev, cur.prev, cur.next))
+          self.validateDBLL()
+          return circle_events
+        else:
+          self.tail = cur.prev
       cur = cur.next
-
-  def printDBL(self):
-    pts = []
-    ptr = self.head
-    while ptr is not None:
-      pts.append(ptr.x)
-      ptr = ptr.next
-    print(pts)
 
   def update(self, ptr):
     if ptr is not None:
-      # print("update")
-      # self.printDBL()
       if (ptr.next is None) and (ptr is self.head):
-        # print("ptr {}".format(ptr.x))
         ptr.breakl, ptr.breakr = ptr.beach.inv_arceqn()
-        # print(ptr.breakl)
-        # print(ptr.breakr)
       else:
       #update right breakpoint of ptr and left bkpt of ptr.next
         if ptr.next is not None:
           if ptr.prev is None:
-            # print("ptr.prev is none: {}".format(ptr.x))
             ptr.breakl, tmp = ptr.beach.inv_arceqn()
+            if(ptr.breakr < ptr.breakl) or (ptr.breakr == ptr.breakl == 1.0) or (ptr.breakr == ptr.breakl == -1.0):
+              self.remove(ptr)
 
           # ptr.breakr = ptr.beach.rightBreakpoint(ptr.next.beach)
           bkpts = ptr.beach.intersect(ptr.next.beach)
@@ -374,17 +360,38 @@ class BeachODBLL:
             ptr.next.breakl = bpt
 
           if(ptr.breakr < ptr.breakl) or (ptr.breakr == ptr.breakl == 1.0) or (ptr.breakr == ptr.breakl == -1.0):
-            # print("we should be removing this")
-            self.remove(ptr)
-          # print("ptr.x {} bl:{} br:{}".format(ptr.x, ptr.breakl, ptr.breakr))
+            print("we should be removing this")
+            print("bn {} ptr.x {} bl:{} br:{}".format(ptr, ptr.x, ptr.breakl, ptr.breakr))
+            self.printDBL()
           self.update(ptr.next)
         else:
           tmp, ptr.breakr = ptr.beach.inv_arceqn()
-          # print("last {} tmp: {} bl:{} br:{}".format(ptr.x, tmp, ptr.breakl, ptr.breakr))
           if(ptr.breakr < ptr.breakl) or (ptr.breakr == ptr.breakl == 1.0) or (ptr.breakr == ptr.breakl == -1.0):
-            # print("we should be removing this...")
             self.remove(ptr)
           return
+
+
+  def find_by_x(self, circle):
+    ''' given a point (presumable circle.low) and an beachfront, 
+    return the arc directly above it'''
+    cur = self.head
+    while cur is not None:
+      if circle.low.x >= cur.breakl and circle.low.x <= cur.breakr:
+        #remove beachfront associated with rightmost site
+        arcs = {}
+        dist = math.fabs(cur.breakl - cur.breakr)
+        arcs[dist] = cur
+        if cur.prev:
+          dist = math.fabs(cur.prev.breakl - cur.prev.breakr)
+          arcs[dist] = cur.prev
+        if cur.next:
+          dist = math.fabs(cur.next.breakl - cur.next.breakr)
+          arcs[dist] = cur.next
+
+        mindist = min(arcs.keys())
+        return arcs[mindist]
+      else:
+        cur = cur.next
 
   def toBuffer(self):
     self.update(self.head)
