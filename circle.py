@@ -6,7 +6,7 @@ class InvalidCircle(Exception):
     self.sites = sites
 
   def __str__(self):
-    return repr(self.sites)
+    return repr([str(site) for site in self.sites])
 
 class NotEmptyCircle(Exception):
   def __init__(self, sites, included):
@@ -14,15 +14,50 @@ class NotEmptyCircle(Exception):
     self.included = included
 
   def __str__(self):
-    return repr(self.sites) + " " + repr(self.included)
+    return repr([str(site) for site in self.sites]) + " " + repr([str(site) for site in self.included])
+
+class CircleAlreadyCreated(Exception):
+  def __init__(self, circle):
+    self.sites = circle.csites()
+
+  def __str__(self):
+    return repr(self.sites)
 
 
 class Circle:
   '''
   given three sites, construct a circle to be used as a circle event
   '''
-
+  created_circles = []
   sites = []
+
+  def already_created(self):
+    # print("created circles")
+    # print(self.created_circles)
+    if set(self.csites()) in self.created_circles:
+      raise CircleAlreadyCreated(self)
+      return True
+    else: 
+      self.created_circles.append(set(self.csites()))
+      # print(self.equals(self.created_circles[0]))
+      # print(self.created_circles)
+      return False
+
+
+  def equals(self, circle):
+    # if self.c.x == circle.c.x and self.c.y == circle.c.y and self.low.y == circle.low.y:
+    #   return True
+    # else:
+    #   print("not equals, somehow cx{} circx{}  cy{}  circy{} clow{} circ.low{}".format(self.c.x, circle.c.x, self.c.y, circle.c.y, self.low.y, circle.low.y))
+    #   return False
+    uncommon_sites = set(self.csites()).symmetric_difference(circle.csites())
+    if len(uncommon_sites) > 0:
+      # print(self.csites())
+      # print(circle.csites())
+      # print(uncommon_sites)
+      return False
+    else:
+      return True
 
   def _is_empty(self):
     # print("_is_empty")
@@ -72,12 +107,11 @@ class Circle:
     self.dist_to_scanline(scanline)
 
   def csites(self):
-    return [str(self.s1), str(self.s2), str(self.s3)]
+    return [self.s1, self.s2, self.s3]
 
 
   def set_eqn(self):
     '''given three points, set the radius, lowest point, & center of the circle'''
-    # try:
     center = self._get_center()
     self.c = center
     self.r = sqrt((self.s1.x - self.c.x )**2 + (self.s1.y - self.c.y)**2)
@@ -96,7 +130,11 @@ class Circle:
     self.s1 = s1
     self.s2 = s2
     self.s3 = s3
+    self.already_created()
     self.set_eqn()
+
+  def __str__(self):
+    return "cx:{}, cy:{}, clow:{}".format(self.c.x, self.c.y, self.csites(), self.low)
 
   def toBuffer(self):
     buf = []

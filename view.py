@@ -50,6 +50,7 @@ from OpenGL.GL import *
 from OpenGL.GLUT import *
 from OpenGL.GLUT.freeglut import *
 from voronoi import Voronoi
+from delaunay import Delaunay
 import numpy as np
 
 colors = [
@@ -72,6 +73,9 @@ circle_color_buffer = None
 vvertex_buffer = None
 vvertex_color_buffer = None
 
+del_edge_buffer = None
+del_edge_color_buffer = None
+
 line_shaders = None
 pt_shaders = None
 # ctl_pts = []
@@ -80,8 +84,8 @@ pt_shaders = None
 
 xStart = 0
 yStart = 0
-width = 512
-height = 512
+width = 1024  
+height = 1024
 scale = 1.0/min(width,height)
 V = None
 # ticks = 0
@@ -126,6 +130,7 @@ def draw():
        beachfront_buffer, beachfront_color_buffer, \
        circle_buffer, circle_color_buffer, \
        vvertex_buffer, vvertex_color_buffer, \
+       del_edge_buffer, del_edge_color_buffer, \
        pt_shaders, line_shaders
 
   # Clear the rendering information.
@@ -258,6 +263,31 @@ def draw():
     glDisableVertexAttribArray(posAL)
     glDisableVertexAttribArray(colorAL)
 
+  # * * * * * * * * * * * * * * * *
+  # Draw delaunay edges
+  if D.face:
+    shs = line_shaders
+    glUseProgram(shs)
+    glLineWidth(3)
+    colorAL = glGetAttribLocation(shs,'a_color')
+    posAL = glGetAttribLocation(shs,'a_position')
+
+    # all the vertex positions
+    glEnableVertexAttribArray(posAL)
+    glBindBuffer(GL_ARRAY_BUFFER, del_edge_buffer)
+    glVertexAttribPointer(posAL, 3, GL_FLOAT, GL_FALSE, 0, None)
+
+    # all the vertex colors
+    glEnableVertexAttribArray(colorAL)
+    glBindBuffer(GL_ARRAY_BUFFER, del_edge_color_buffer)
+    glVertexAttribPointer(colorAL, 3, GL_FLOAT, GL_FALSE, 0, None)
+
+    for i in range(0, len(D.face)):
+      glDrawArrays(GL_LINE_LOOP, 3*i, 3)
+    # glDrawArrays(GL_TRIANGLES, 0, len(D.face)*2)
+    glDisableVertexAttribArray(posAL)
+    glDisableVertexAttribArray(colorAL)
+
   glPopMatrix()
 
   # Render the scene.
@@ -372,26 +402,50 @@ def update_vvertex_buffers():
   glBufferData(GL_ARRAY_BUFFER, len(color_array)*4,
     (c_float*len(color_array))(*color_array), GL_STATIC_DRAW)
 
+def update_delaunay_buffers():
+  global del_edge_buffer, del_edge_color_buffer
+  edge_array, color_array = D.toBuffer()
+
+  del_edge_buffer = glGenBuffers(1)
+  glBindBuffer(GL_ARRAY_BUFFER, del_edge_buffer)
+  glBufferData(GL_ARRAY_BUFFER, len(edge_array)*4,
+    (c_float*len(edge_array))(*edge_array), GL_STATIC_DRAW)
+
+  del_edge_color_buffer = glGenBuffers(1)
+  glBindBuffer(GL_ARRAY_BUFFER, del_edge_color_buffer)
+  glBufferData(GL_ARRAY_BUFFER, len(color_array)*4,
+    (c_float*len(color_array))(*color_array), GL_STATIC_DRAW)
+
 
 def tick(val):
   global V
   if V.scanning and not V.scanFinished():
-    V.update()
-    update_scanline_buffers()
-    update_beachline_buffers()
-    update_circle_buffers()
-    update_vvertex_buffers()
-    glutPostRedisplay()
+    if val:
+      val = not val
+      V.update()
+      update_scanline_buffers()
+      update_beachline_buffers()
+      update_circle_buffers()
+      update_vvertex_buffers()
+      update_delaunay_buffers()
+      glutPostRedisplay()
+      glutTimerFunc(8, tick, val)
+    else:
+      val = not val
+      V.update()
+      glutTimerFunc(8, tick, val)
+
   else:
     V.scanning = False
-    update_beachline_buffers()
-  glutTimerFunc(15, tick, 0)
+    # update_beachline_buffers()
+    glutTimerFunc(10, tick, 0)
 
 
 
 def init():
-  global V
+  global V, D
   V = Voronoi()
+  D = V.delaunay
   global line_shaders, pt_shaders
   line_shaders = init_shaders('shaders/vert_shader.glsl',
                'shaders/frag_shader.glsl')

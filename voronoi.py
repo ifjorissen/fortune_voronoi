@@ -36,6 +36,8 @@ class Voronoi:
     self.circles = []
     self.vvertices = []
     self.createScanline()
+    self.handled_circles = []
+    self.delaunay = Delaunay(self)
 
   def createScanline(self):
     self.scanline = Scanline()
@@ -78,6 +80,7 @@ class Voronoi:
     self.sites.append(site)
     self.event_pq.append(site)
     Circle.sites = self.sites
+    Delaunay.vertices = self.sites
 
   def scanFinished(self):
     if self.scanline.y < (-1.0-self.scanline.dy):
@@ -107,6 +110,7 @@ class Voronoi:
         circle_events = self.beachline.insert(beach)
         self.beaches.append(beach)
         if circle_events:
+          print([str(c) for c in circle_events])
           self.circles.extend(circle_events)
           self.event_pq.extend(circle_events)
 
@@ -115,19 +119,29 @@ class Voronoi:
         print("\ncircle event @(cx{}, cy{}), sy{}".format(circle.c.x, circle.c.y, self.scanline.y))
         arc = self.beachline.find_by_x(circle)
         self.vvertices.append(circle.c)
+        self.delaunay.add_face(circle)
+        # Delaunay.faces = self.vvertices
+        #to do: array of previously popped circle events
+        # don't want to add other circles
+        # circles class should have all circles & handled circles
         bad_circles = arc.circles
         new_circles = self.beachline.remove(arc)
         if new_circles:
-          self.circles.extend(new_circles)
-          self.event_pq.extend(new_circles)
+          for c in new_circles:
+            if not c.equals(circle):
+              self.circles.append(c)
+              self.event_pq.append(c)
         for c in bad_circles:
           try:
-            self.event_pq.remove(c)
+            for i in range(0, self.event_pq.count(c)):
+              self.event_pq.remove(c)
           except:
-            if c != circle:
+            if not c.equals(circle):
               print("could not remove c:{} cx:{}".format(c, c.c))
               print("circle  c:{} cx:{}".format(c, c.c))
             pass
+        self.handled_circles.append(circle)
+      self.event_pq.sort(key=lambda site: site.dist2scan, reverse=True)
         # self.circles.remove(c)
 
 
