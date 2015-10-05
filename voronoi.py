@@ -5,6 +5,7 @@ from beach import Beach, BeachODBLL
 import math
 from circle import Circle
 from delaunay import Delaunay
+from dcel import VoronoiDCEL
 
 import random
 from itertools import chain
@@ -38,6 +39,25 @@ class Voronoi:
     self.createScanline()
     self.handled_circles = []
     self.delaunay = Delaunay(self)
+    self.edgeDCEL = VoronoiDCEL()
+
+  def precompute(self):
+    '''
+        precomputes the voronoi & delaunay digrams without visualization
+        instead of doing it on-the-fly as is currently implemented
+        could lead to functions such as showBeach(scanline), 
+        showCircle(circle) etc, where the events are all precomputed & precise
+    '''
+    while (self.event_pq > 0):
+      self.processEvent()
+
+  def edgesToBuffer(self):
+    #show the edges as they are being traced out
+    pass
+
+  def DVCELtoBuffer(self):
+    #reveal the computed diagram
+    pass
 
   def createScanline(self):
     self.scanline = Scanline()
@@ -84,6 +104,9 @@ class Voronoi:
 
   def scanFinished(self):
     if self.scanline.y < (-1.0-self.scanline.dy):
+      #calculate the DCEL
+      self.edgeDCEL.printVoronoiEdges()
+      # self.edgeDCEL.processFromDelaunay(self.vvertices, self.delaunay)
       return True
     else:
       return False
@@ -120,6 +143,7 @@ class Voronoi:
         arc = self.beachline.find_by_x(circle)
         self.vvertices.append(circle.c)
         self.delaunay.add_face(circle)
+        self.edgeDCEL.handleCircle(circle)
         # Delaunay.faces = self.vvertices
         #to do: array of previously popped circle events
         # don't want to add other circles
@@ -155,6 +179,11 @@ class Voronoi:
         circle.update(self.scanline)
 
       self.event_pq.sort(key=lambda site: site.dist2scan, reverse=True)
-      if len(self.event_pq)>0 and (self.event_pq[-1].dist2scan <= math.fabs(self.scanline.dy/2)):
+      # if len(self.event_pq)>0 and (self.event_pq[-1].dist2scan <= math.fabs(self.scanline.dy/2)):
+      #   self.processEvent()
+      if len(self.event_pq) == 0:
+        self.edgeDCEL.printVoronoiEdges()
+        self.scanline.y = -1.0
+      elif self.event_pq[-1].dist2scan <= math.fabs(self.scanline.dy/2):
         self.processEvent()
 

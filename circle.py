@@ -31,37 +31,24 @@ class Circle:
   created_circles = []
   sites = []
 
+  #should probably be a class method
   def already_created(self):
-    # print("created circles")
-    # print(self.created_circles)
     if set(self.csites()) in self.created_circles:
       raise CircleAlreadyCreated(self)
       return True
     else: 
       self.created_circles.append(set(self.csites()))
-      # print(self.equals(self.created_circles[0]))
-      # print(self.created_circles)
       return False
 
 
   def equals(self, circle):
-    # if self.c.x == circle.c.x and self.c.y == circle.c.y and self.low.y == circle.low.y:
-    #   return True
-    # else:
-    #   print("not equals, somehow cx{} circx{}  cy{}  circy{} clow{} circ.low{}".format(self.c.x, circle.c.x, self.c.y, circle.c.y, self.low.y, circle.low.y))
-    #   return False
     uncommon_sites = set(self.csites()).symmetric_difference(circle.csites())
     if len(uncommon_sites) > 0:
-      # print(self.csites())
-      # print(circle.csites())
-      # print(uncommon_sites)
       return False
     else:
       return True
 
   def _is_empty(self):
-    # print("_is_empty")
-    # print(self.sites)
     included = []
     #check to make sure the circle is empty
     for site in self.sites:
@@ -84,20 +71,11 @@ class Circle:
     try:
       m12 = (s1.y - s2.y)/(s1.x - s2.x)
       m23 = (s2.y - s3.y)/(s2.x - s3.x)
-      # print("m12: {} m23: {}".format(m12, m23))
       cx = (m12*m23*(s3.y-s1.y) + m12*(s2.x + s3.x) - m23*(s1.x + s2.x))/(2.0*(m12 - m23))
       cy = (-1.0/m12)*(cx - (s1.x + s2.x)/2.0) + (s1.y + s2.y)/2.0
       return p(cx, cy, 0.0)
     except:
       raise InvalidCircle(self.csites())
-
-
-    # if cx and cy:
-    #   return p(cx, cy, 0.0)
-    
-    # else:
-    #   # print("no circle exists")
-    #   raise InvalidCircle([s1, s2, s3])
 
   def dist_to_scanline(self, scanline):
     self.dist2scan = fabs(self.low.y - scanline.y)
@@ -116,15 +94,7 @@ class Circle:
     self.c = center
     self.r = sqrt((self.s1.x - self.c.x )**2 + (self.s1.y - self.c.y)**2)
     self.low = p(self.c.x, self.c.y-self.r, 0.0)
-    # print("self.c {} self.r {} self.low {} sites: {} {} {}".format(self.c, self.r, self.low, self.s1.x, self.s2.x, self.s3.x))
     empty = self._is_empty()
-    # except InvalidCircle:
-    #   raise InvalidCircle(self.csites())
-
-    # except NotEmptyCircle:
-    #   raise NotEmptyCircle(self.csites(), included)
-
-    # if center:
 
   def __init__(self, s1, s2, s3):
     self.s1 = s1

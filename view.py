@@ -54,25 +54,29 @@ from delaunay import Delaunay
 import numpy as np
 
 colors = [
-  vector(0.3451, 1.0, 0.5450),
-  vector(1.0, 0.4313, 0.3411),
-  vector(1.0, 0.8862, 0.3725),
-  vector(1.0, 1.0, 0.0),
-  vector(0.0, 1.0, 1.0),
-  vector(1.0, 0.0, 1.0),
-  vector(0.3804, 0.7647, 1.0)
+  vector(0.0, .4, 0.9), #blue
+  vector(1.0, .5, 0.0), #orange
+  vector(1.0, .85, 0.0), #yellow
+  vector(.4, .2, .55), #purple
+  vector(0, 0.6, .7), #teal
+  vector(0.72, 0.32, 0) #dark orange
 ]
-site_buffer = None  # The VBOs
+
+#voronoi buffers
+site_buffer = None 
 site_color_buffer = None   #
-scanline_buffer = None
-scanline_color_buffer = None
 beachfront_buffer = None
 beachfront_color_buffer = None
-circle_buffer = None
-circle_color_buffer = None
 vvertex_buffer = None
 vvertex_color_buffer = None
 
+#event buffers
+circle_buffer = None
+circle_color_buffer = None
+scanline_buffer = None
+scanline_color_buffer = None
+
+#delaunay buffers
 del_edge_buffer = None
 del_edge_color_buffer = None
 
@@ -217,7 +221,7 @@ def draw():
   shs = line_shaders
   glUseProgram(shs)
   glEnable(GL_LINE_SMOOTH)
-  if V.scanning:
+  if V.scanning and not V.scanFinished():
     glLineWidth(5)
     colorAL = glGetAttribLocation(shs,'a_color')
     posAL = glGetAttribLocation(shs,'a_position')

@@ -202,10 +202,8 @@ class BeachODBLL:
     try:
       circle = Circle(n1.beach.focus, n2.beach.focus, n3.beach.focus)
       circle.update(scanline)
-        #make sure the circle's lowest point is below the scanline (i.e, where we just added the site)
-        #note that this isnt quite correct (e.g think abt case where we removed arc & are recomputing)
-      # if (circle.low.y < scanline.y) and (circle.low.y > -1.0) and (circle.r < 2.0):
-      # if (circle.low.y > -1.0) and (circle.r < 2.0):
+      #make sure the circle's lowest point is below the scanline (i.e, where we just added the site)
+      #note that this isnt quite correct (e.g think abt case where we removed arc & are recomputing)
       print("adding a circle @cx {}, cy {}, low {}, dist2scan {})".format(circle.c.x, circle.c.y, circle.low.y, circle.dist2scan))
       print("circle.sites(): :{}".format([str(site) for site in circle.csites()]))
       n1.circles.append(circle)
@@ -213,10 +211,8 @@ class BeachODBLL:
       n3.circles.append(circle)
       circle_events.append(circle)
     except InvalidCircle as IC:
-      # raise
       print("CIRCLE ERROR: Not a valid circle {}".format(str(IC)))
     except NotEmptyCircle as NEC:
-      # raise
       print("CIRCLE ERROR: Not an empty circle sites included {}".format(str(NEC)))
     except CircleAlreadyCreated as CAC:
       print("CIRCLE ERROR: Circle already created {}".format(str(CAC)))
@@ -367,8 +363,9 @@ class BeachODBLL:
 
           # if(ptr.breakr < ptr.breakl) or (ptr.breakr == ptr.breakl == 1.0) or (ptr.breakr == ptr.breakl == -1.0):
           if(ptr.breakr < ptr.breakl):
-            print("should remove: bn {} ptr.x {} bl:{} br:{}".format(ptr, ptr.x, ptr.breakl, ptr.breakr))
-            self.printDBL()
+            # print("should remove: bn {} ptr.x {} bl:{} br:{}".format(ptr, ptr.x, ptr.breakl, ptr.breakr))
+            #self.printDBL()
+            pass
           self.update(ptr.next)
         else:
           tmp, ptr.breakr = ptr.beach.inv_arceqn()
@@ -387,14 +384,14 @@ class BeachODBLL:
         if math.fabs(math.fabs(circle.low.x) - math.fabs(cur.breakl)) > .005 and math.fabs(math.fabs(circle.low.x) - math.fabs(cur.breakr)) > .005:
           print(math.fabs(math.fabs(circle.low.x) - math.fabs(cur.breakl)))
           print(math.fabs(math.fabs(circle.low.x) - math.fabs(cur.breakr)))
-          print("cur.breakl {} br{}".format(cur.breakl, cur.breakr))
-          print("cur{} cur dist {}".format(cur, dist))
+          # print("cur.breakl {} br{}".format(cur.breakl, cur.breakr))
+          # print("cur{} cur dist {}".format(cur, dist))
           if cur.prev and cur.prev.x != cur.prev.breakl and cur.prev.x != cur.prev.breakr:
             dist = math.fabs(cur.prev.breakl - cur.prev.breakr)
-            print("cur{} cur.prev dist {}".format(cur.prev, dist))
+            # print("cur{} cur.prev dist {}".format(cur.prev, dist))
           if cur.next and cur.next.x != cur.next.breakl and cur.next.x != cur.next.breakr:
             dist = math.fabs(cur.next.breakl - cur.next.breakr)
-            print("cur {} cur.next dist {}".format(cur.next, dist))
+            # print("cur {} cur.next dist {}".format(cur.next, dist))
           return cur
         else:
           arcs = {}
@@ -402,19 +399,19 @@ class BeachODBLL:
           arcs[dist] = cur
           print(math.fabs(math.fabs(circle.low.x) - math.fabs(cur.breakl)))
           print(math.fabs(math.fabs(circle.low.x) - math.fabs(cur.breakr)))
-          print("cur.breakl {} br{}".format(cur.breakl, cur.breakr))
-          print("cur{} cur dist {}".format(cur, dist))
+          # print("cur.breakl {} br{}".format(cur.breakl, cur.breakr))
+          # print("cur{} cur dist {}".format(cur, dist))
           if cur.prev and cur.prev.x != cur.prev.breakl and cur.prev.x != cur.prev.breakr:
             dist = math.fabs(cur.prev.breakl - cur.prev.breakr)
             arcs[dist] = cur.prev
-            print("cur{} cur.prev dist {}".format(cur.prev, dist))
+            # print("cur{} cur.prev dist {}".format(cur.prev, dist))
           if cur.next and cur.next.x != cur.next.breakl and cur.next.x != cur.next.breakr:
             dist = math.fabs(cur.next.breakl - cur.next.breakr)
             arcs[dist] = cur.next
-            print("cur {} cur.next dist {}".format(cur.next, dist))
+            # print("cur {} cur.next dist {}".format(cur.next, dist))
 
           mindist = min(arcs.keys())
-          print("mindist {}".format(mindist))
+          # print("mindist {}".format(mindist))
           return arcs[mindist]
       else:
         cur = cur.next
