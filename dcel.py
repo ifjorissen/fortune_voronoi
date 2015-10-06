@@ -90,11 +90,15 @@ class Edge():
 
     if (s1, s2) in o.edges:
       #update an edge or figure out that we had an error
-      print(type((s1, s2)))
-      print((s1, s2) == (s2, s1))
-      if self.source is not None: 
-        print("UPDATE: This edge already existed there: {} src:{} dst:{}, updating that edge with nsrc{}".format(o.edges[(s1, s2)], o.edges[(s1, s2)].source, o.edges[(s1, s2)].dest, self.source))
-        o.edges[(s1, s2)].source = self.source
+      if self.source is not None:
+        if o.edges[(s1, s2)].source is None:  
+          print("UPDATE: This edge already existed there: {} src:{} dst:{}, updating that edges src with nsrc{}".format(o.edges[(s1, s2)], o.edges[(s1, s2)].source, o.edges[(s1, s2)].dest, self.source))
+          o.edges[(s1, s2)].source = self.source
+        elif o.edges[(s1, s2)].dest is None:  
+          print("UPDATE: This edge already existed there: {} src:{} dst:{}, updating that edges dst with nsrc{}".format(o.edges[(s1, s2)], o.edges[(s1, s2)].source, o.edges[(s1, s2)].dest, self.source))
+          o.edges[(s1, s2)].dest = self.source
+        else:
+          print("source and dest were already defined for this edge")
       else:
         print("Bad Edge Orientation for {} src: {} dst: {}".format(self, self.source, self.dest))
         print("REPLACE: This edge already existed there: {} src:{} dst:{}".format(o.edges[(s1, s2)], o.edges[(s1, s2)].source, o.edges[(s1, s2)].dest))
@@ -104,10 +108,17 @@ class Edge():
       o.edges[(s1, s2)] = self
 
     if (s2, s1) in o.edges:
+      if self.source is not None:
+        if o.edges[(s2, s1)].source is None:
+          print("UPDATE: This edge already existed there: {} src:{} dst:{}, updating that edges src with nsrc{}".format(o.edges[(s2, s1)], o.edges[(s2, s1)].source, o.edges[(s2, s1)].dest, self.source))
+          o.edges[(s2, s1)].source = self.source
+        elif o.edges[(s2, s1)].dest is None:  
+          print("UPDATE: This edge already existed there: {} src:{} dst:{}, updating that edges dst with nsrc{}".format(o.edges[(s2, s1)], o.edges[(s2, s1)].source, o.edges[(s2, s1)].dest, self.source))
+          o.edges[(s2, s1)].dest = self.source
       print("Good Edge Orientation for {}".format(self))
       self.twin = o.edges[(s2, s1)]
-      self.twin.twin = self
-      self.dest = self.twin.source
+      self.twin.twin = o.edges[(s1, s2)] 
+      # self.dest = self.twin.source
 
   #even though we know where the edge goes, if the circle event hasn't 
   #occurred yet we can't draw the whole thing
@@ -167,21 +178,24 @@ class VoronoiDCEL():
     e2 = Edge(v.sites[1], v.sites[2], v, self)
     e3 = Edge(v.sites[2], v.sites[0], v, self)
 
-    #add twins if they don't exist
+    #add twins if they don't exist 
     if e1.twin is None:
-      e1t = Edge(v.sites[1], v.sites[0], None, self)
+      Edge(v.sites[1], v.sites[0], None, self)
+      e1t = self.edges[(v.sites[1], v.sites[0])]
       e1t.dest = e1.source
       print("created {} src:{} dst:{}, twin:{}".format(e1t, e1t.source, e1t.dest, e1t.twin))
     e1.twin.next = e2
 
     if e2.twin is None:
-      e2t = Edge(v.sites[2], v.sites[1], None, self)
+      Edge(v.sites[2], v.sites[1], None, self)
+      e2t = self.edges[(v.sites[2], v.sites[1])]
       e2t.dest = e2.source
       print("created {} src:{} dst:{}, twin:{}".format(e2t, e2t.source, e2t.dest, e2t.twin))
     e2.twin.next = e3
 
     if e3.twin is None:
-      e3t = Edge(v.sites[0], v.sites[2], None, self)
+      Edge(v.sites[0], v.sites[2], None, self)
+      e3t = self.edges[(v.sites[0], v.sites[2])]
       e3t.dest = e3.source
       print("created {} src:{} dst:{}, twin:{}".format(e3t, e3t.source, e3t.dest, e3t.twin))
     e3.twin.next = e1
@@ -207,24 +221,79 @@ class VoronoiDCEL():
     infv = self.infv
 
     for edge in list(self.edges.values()):
-      if edge.twin is None:
-        if edge.dest is not None:
-          print("edge {} had no twin but has a destination ...".format(edge))
-          new_edge = Edge(edge.s2, edge.s1, edge.dest, self)
-          print("successfully created one: {}".format(new_edge))
-        else:
-          print("edge {} had no twin...".format(edge))
-          new_edge = Edge(edge.s2, edge.s1, infv, self)
-          print("successfully created one: {}".format(new_edge))
-      elif edge.source is None:
-        print("edge {} had no source...".format(edge))
+      # if edge.dest is None:
+      #   if edge.next is not None:
+      #     edge.dest = edge.next.source
+
+      if edge.source is None:
         edge.source = infv
-        edge.twin.dest = infv
-        if edge.twin.next is None:
-          print("SETTING edge.twin:{}'s twin.next to: {}".format(edge.twin, edge.next.twin))
-          edge.twin.next = edge.next.twin
-        else:
-          print("had a twin.next tho: {}".format(edge.twin.next))
+        print("edge{} has no source: edge.twin.source {}".format(edge, edge.twin.source))
+        if edge.twin.dest is None:
+          if edge.twin.next is not None:
+            print("Settin dest, checking that edge.twin.next.source {} is edge.src{}".format(edge.twin.next.source, edge.source))
+            edge.twin.dest = edge.twin.next.source
+          else:
+            print("edge {} edge.next{}".format(edge, edge.next))
+            print("edge.next.twin{}".format(edge.next.twin))
+            print("edge.next.twin.next {}".format(edge.next.twin.next))
+            print("edge.next.twin.next.twin {}".format(edge.next.twin.next.twin))
+            print("Edge.twin.next DNE is edge{} edge.src{}, edge.next.twin.next.twin.src{}".format(edge, edge.source, edge.next.twin.next.twin.source))
+            edge.twin.dest = edge.source
+            edge.twin.next = edge.next.twin.next.twin
+            print("Edge.twin.next {} edge.next.twin.next.twin.next{}".format(edge.twin.next, edge.next.twin.next.twin.next))
+
+      # if edge.dest is None and edge.next is not None:
+      #   edge.dest = edge.next.source
+      # elif edge.dest is None:
+      #   edge.next = 
+        # if edge.next.dest
+
+      # if edge.twin is None:
+      #   if edge.dest is not None:
+      #     print("edge {} had no twin but has a destination ...".format(edge))
+      #     new_edge = Edge(edge.s2, edge.s1, edge.dest, self)
+      #     print("successfully created one: {}".format(new_edge))
+      #   else:
+      #     print("edge {} had no twin...".format(edge))
+      #     new_edge = Edge(edge.s2, edge.s1, infv, self)
+      #     print("successfully created one: {}".format(new_edge))
+      # else:
+        # print("{}".format(edge, edge.source, edge.dest, ))
+
+      #handle incident half edges and set their source as infinite vertex
+      # if edge.source is None:
+      #   print("edge {} had no source...".format(edge))
+      #   edge.source = infv
+      #   edge.twin.dest = edge.source
+      #   if edge.twin.next is None:
+      #     print("SRC SETTING edge.twin:{}'s twin.next to: {}".format(edge.twin, edge.next.twin))
+      #     edge.twin.next = edge.next.twin
+      #     if edge.next.twin.next is None:
+      #       print("SRC SETTING edge.next:{}'s twin.next to: {}".format(edge.next, edge.twin))
+      #       edge.next.twin.next = edge.twin
+
+      #handle outgoing half edges and set their destination as infinite vertex
+      # elif edge.dest is None:
+      #   print("edge {} had no dest...".format(edge))
+      #   if edge.next:
+      #     edge.dest = edge.next.source
+      #   else:
+      #     print("edge {} had no next...".format(edge))
+      #     edge.dest = edge.twin.source
+        
+      #   if edge.twin.next is None:
+      #     print("DEST SETTING edge.twin:{}'s twin.next to: {}".format(edge.twin, edge.next.twin))
+      #     edge.twin.next = edge.next.twin
+      #     if edge.next.twin.next is None:
+      #       print("DEST SETTING edge.next:{}'s twin.next to: {}".format(edge.next, edge.twin))
+      #       edge.next.twin.next = edge.twin
+
+      else:
+        print("edge seemed fine... vinf: {}".format(self.infv))
+        # if edge.twin.source is None:
+          # pass
+        print("edge:{} src:{} dst:{} next: {} twin: {}".format(edge, edge.source, edge.dest, edge.next, edge.twin))
+        print("twin:{} src:{} dst:{} next: {} twin: {}\n".format(edge.twin, edge.twin.source, edge.twin.dest, edge.twin.next, edge.twin.twin))
     print("----**** done with postprocessEdges ****----")
 
   def printVoronoiEdges(self):
@@ -234,14 +303,17 @@ class VoronoiDCEL():
       if vertex is not self.infv:
         print("\nvertex {} with {} outgoing edges".format(vertex, len(vertex.outgoing_edges)))
         for edge in vertex.outgoing_edges:
-          while edge is not None and edge.dest is not vertex:
-            print("following the outgoing edge {} of this vertex trying to form a cell".format(edge))
+          # while edge is not None and edge.dest is not vertex:
+          print("following the outgoing edge {}, edge.next:{} of this vertex trying to form a cell vinf = {}".format(edge, edge.next, self.infv))
+          while edge.next.source is not vertex:
+            print("following the outgoing edge {}".format(edge, self.infv))
             print("\tedge: {} source: {} dest: {}: twin: {}: next: {}".format(edge, edge.source, edge.dest, edge.twin, edge.next))
             edge = edge.next
-          if edge is None:
-            #raise error
-            print("vertex {} did not form a valid cell".format(vertex))
-          elif edge.dest is vertex:
+            if edge is None:
+              #raise error
+              print("vertex {} did not form a valid cell".format(vertex))
+          print("\tedge.next: {} source: {} dest: {}: twin: {}: next: {}".format(edge.next, edge.next.source, edge.next.dest, edge.next.twin, edge.next.next))
+          if edge.next.source is vertex:
             print("vertex {} formed a valid cell!".format(vertex))
           else:
             print("something else really weird on vertex v{}".format(vertex))
