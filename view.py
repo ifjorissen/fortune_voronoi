@@ -69,6 +69,8 @@ beachfront_buffer = None
 beachfront_color_buffer = None
 vvertex_buffer = None
 vvertex_color_buffer = None
+vedge_buffer = None
+vedge_color_buffer = None
 
 #event buffers
 circle_buffer = None
@@ -135,6 +137,7 @@ def draw():
        circle_buffer, circle_color_buffer, \
        vvertex_buffer, vvertex_color_buffer, \
        del_edge_buffer, del_edge_color_buffer, \
+       vedge_buffer, vedge_color_buffer,\
        pt_shaders, line_shaders
 
   # Clear the rendering information.
@@ -242,6 +245,54 @@ def draw():
   glDisable(GL_LINE_SMOOTH)
 
   # * * * * * * * * * * * * * * * *
+  # Draw delaunay edges
+  if D.face:
+    shs = line_shaders
+    glUseProgram(shs)
+    glLineWidth(3)
+    colorAL = glGetAttribLocation(shs,'a_color')
+    posAL = glGetAttribLocation(shs,'a_position')
+
+    # all the vertex positions
+    glEnableVertexAttribArray(posAL)
+    glBindBuffer(GL_ARRAY_BUFFER, del_edge_buffer)
+    glVertexAttribPointer(posAL, 3, GL_FLOAT, GL_FALSE, 0, None)
+
+    # all the vertex colors
+    glEnableVertexAttribArray(colorAL)
+    glBindBuffer(GL_ARRAY_BUFFER, del_edge_color_buffer)
+    glVertexAttribPointer(colorAL, 3, GL_FLOAT, GL_FALSE, 0, None)
+
+    for i in range(0, len(D.face)):
+      glDrawArrays(GL_LINE_LOOP, 3*i, 3)
+    # glDrawArrays(GL_TRIANGLES, 0, len(D.face)*2)
+    glDisableVertexAttribArray(posAL)
+    glDisableVertexAttribArray(colorAL)
+
+  # * * * * * * * * * * * * * * * *
+  # Draw voronoi edges
+  if V.scanFinished():
+    shs = line_shaders
+    glUseProgram(shs)
+    glLineWidth(3)
+    colorAL = glGetAttribLocation(shs,'a_color')
+    posAL = glGetAttribLocation(shs,'a_position')
+
+    # all the vertex positions
+    glEnableVertexAttribArray(posAL)
+    glBindBuffer(GL_ARRAY_BUFFER, vedge_buffer)
+    glVertexAttribPointer(posAL, 3, GL_FLOAT, GL_FALSE, 0, None)
+
+    # all the vertex colors
+    glEnableVertexAttribArray(colorAL)
+    glBindBuffer(GL_ARRAY_BUFFER, vedge_color_buffer)
+    glVertexAttribPointer(colorAL, 3, GL_FLOAT, GL_FALSE, 0, None)
+
+    glDrawArrays(GL_LINES, 0, len(V.edgeDCEL.edges)*2)
+    glDisableVertexAttribArray(posAL)
+    glDisableVertexAttribArray(colorAL)
+
+  # * * * * * * * * * * * * * * * *
   # Draw voronoi vertices
   if V.vvertices:
     shs = pt_shaders
@@ -264,31 +315,6 @@ def draw():
     glDrawArrays(GL_POINTS, 0, len(V.vvertices))
     glDisable(GL_POINT_SPRITE);
     glDisable(GL_VERTEX_PROGRAM_POINT_SIZE)
-    glDisableVertexAttribArray(posAL)
-    glDisableVertexAttribArray(colorAL)
-
-  # * * * * * * * * * * * * * * * *
-  # Draw delaunay edges
-  if D.face:
-    shs = line_shaders
-    glUseProgram(shs)
-    glLineWidth(3)
-    colorAL = glGetAttribLocation(shs,'a_color')
-    posAL = glGetAttribLocation(shs,'a_position')
-
-    # all the vertex positions
-    glEnableVertexAttribArray(posAL)
-    glBindBuffer(GL_ARRAY_BUFFER, del_edge_buffer)
-    glVertexAttribPointer(posAL, 3, GL_FLOAT, GL_FALSE, 0, None)
-
-    # all the vertex colors
-    glEnableVertexAttribArray(colorAL)
-    glBindBuffer(GL_ARRAY_BUFFER, del_edge_color_buffer)
-    glVertexAttribPointer(colorAL, 3, GL_FLOAT, GL_FALSE, 0, None)
-
-    for i in range(0, len(D.face)):
-      glDrawArrays(GL_LINE_LOOP, 3*i, 3)
-    # glDrawArrays(GL_TRIANGLES, 0, len(D.face)*2)
     glDisableVertexAttribArray(posAL)
     glDisableVertexAttribArray(colorAL)
 
@@ -420,6 +446,20 @@ def update_delaunay_buffers():
   glBufferData(GL_ARRAY_BUFFER, len(color_array)*4,
     (c_float*len(color_array))(*color_array), GL_STATIC_DRAW)
 
+def update_vedge_buffers():
+  global vedge_buffer, vedge_color_buffer
+  vedge_array, color_array = V.edgesToBuffer()
+
+  vedge_buffer = glGenBuffers(1)
+  glBindBuffer(GL_ARRAY_BUFFER, vedge_buffer)
+  glBufferData(GL_ARRAY_BUFFER, len(vedge_array)*4,
+    (c_float*len(vedge_array))(*vedge_array), GL_STATIC_DRAW)
+
+  vedge_color_buffer = glGenBuffers(1)
+  glBindBuffer(GL_ARRAY_BUFFER, vedge_color_buffer)
+  glBufferData(GL_ARRAY_BUFFER, len(color_array)*4,
+    (c_float*len(color_array))(*color_array), GL_STATIC_DRAW)
+
 
 def tick(val):
   global V
@@ -438,6 +478,13 @@ def tick(val):
       val = not val
       V.update()
       glutTimerFunc(8, tick, val)
+
+  elif V.scanFinished():
+    # V.update()
+    V.scanning = False
+    update_vedge_buffers()
+    # glutTimerFunc(10, tick, 0)
+    glutPostRedisplay()
 
   else:
     V.scanning = False

@@ -55,9 +55,10 @@ class Voronoi:
     #show the edges as they are being traced out
     pass
 
-  def DVCELtoBuffer(self):
+  def edgesToBuffer(self):
     #reveal the computed diagram
-    pass
+    edges, cBuf = self.edgeDCEL.edgesToBuffer()
+    return edges, cBuf
 
   def createScanline(self):
     self.scanline = Scanline()
@@ -102,11 +103,11 @@ class Voronoi:
     Circle.sites = self.sites
     Delaunay.vertices = self.sites
 
+  def validateEdges(self):
+    return self.edgeDCEL.validateCells()
+
   def scanFinished(self):
     if self.scanline.y < (-1.0-self.scanline.dy):
-      #calculate the DCEL
-      self.edgeDCEL.printVoronoiEdges()
-      # self.edgeDCEL.processFromDelaunay(self.vvertices, self.delaunay)
       return True
     else:
       return False
@@ -166,7 +167,6 @@ class Voronoi:
             pass
         self.handled_circles.append(circle)
       self.event_pq.sort(key=lambda site: site.dist2scan, reverse=True)
-        # self.circles.remove(c)
 
 
   def update(self):
@@ -182,8 +182,8 @@ class Voronoi:
       # if len(self.event_pq)>0 and (self.event_pq[-1].dist2scan <= math.fabs(self.scanline.dy/2)):
       #   self.processEvent()
       if len(self.event_pq) == 0:
-        self.edgeDCEL.printVoronoiEdges()
         self.scanline.y = -1.0
+
       elif self.event_pq[-1].dist2scan <= math.fabs(self.scanline.dy/2):
         self.processEvent()
 

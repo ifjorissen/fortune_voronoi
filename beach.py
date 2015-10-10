@@ -25,41 +25,15 @@ class Beach:
     except:
       x2 = min(a, h)
 
-    # if x1 > x2:
-    #   return [max(-1.0, x2), min(1.0, x1)]
-    # else:
-    #   return [max(-1.0, x1), min(1.0, x2)]
-
     if x1 > x2:
       return [x2, x1]
     else:
       return [x1, x2]
 
-    # if (x1 >= a) and (x1 <= h):
-    #   return [x1, x2]
-
-    # else:
-    #   return [x2, x1]
-
-  # def leftBreakpoint(self, beach):
-  #   #return the left breakpoint of the adjacent beach
-  #   if beach.focus.y is self.directrix.y:
-  #     return beach.focus.y
-
-  #   if self.focus.y is self.directrix.y:
-  #     return self.focus.y
-
-
-
-  # def rightBreakpoint(self, beach):
-  #   #return to right breakpoint of self
-  #   return self.leftBreakpoint(beach)
-
   def old_arceqn(self, x):
     a = self.focus.x
     b = self.focus.y
     c = self.directrix.y
-    # verty = b - (self.focus.dist2scan / 2.0)
     y = (1.0/(2.0*(b-c))) * ((x-a)*(x-a)) + (1.0/2.0)*(b+c)
 
     return y
@@ -81,10 +55,6 @@ class Beach:
     try:
       x1 = a + math.sqrt(-1.0*(b-c)*(b+c - 2.0*y))
       x2 = a - math.sqrt(-1.0*(b-c)*(b+c - 2.0*y))
-      # if x1 > x2:
-      #   return max(-1.0, x2), min(1.0, x1)
-      # else:
-      #   return max(-1.0, x1), min(1.0, x2)
       if x1 > x2:
         return x2, x1
       else:
@@ -259,14 +229,30 @@ class BeachODBLL:
             bn.breakl = bn.x
             bn.breakr = bn.x
 
-            #make a new node to the right
+            pl, pr = ptr.beach.inv_arceqn()
             rbn = BeachNode(ptr.beach, bn, ptr.next, bn.breakr, ptr.breakr)
-            ptr.breakr = bn.breakl
             if ptr.next:
               rbn.next.prev = rbn
             bn.next = rbn
+            ptr.breakr = bn.breakl
             bn.prev = ptr
             ptr.next = bn
+
+            #make a new node to the right if we need to
+            # pl, pr = ptr.beach.inv_arceqn()
+            # if bn.x > pl or bn.x < pr:
+            #   rbn = BeachNode(ptr.beach, bn, ptr.next, bn.breakr, ptr.breakr)
+            #   if ptr.next:
+            #     rbn.next.prev = rbn
+            #   bn.next = rbn
+
+            # else:
+            #   bn.next = ptr.next
+
+            # ptr.breakr = bn.breakl
+            # bn.prev = ptr
+            # ptr.next = bn
+
 
             #add circle events
             #2 sites to the left
@@ -278,13 +264,15 @@ class BeachODBLL:
             if bn.next and bn.next.next:
               circle_events.extend(self.addCircle(bn, bn.next, bn.next.next))
 
-            #two sites to the right
-            if rbn.next and rbn.next.next:
-              # print("two sites to the right")
-              circle_events.extend(self.addCircle(rbn, rbn.next, rbn.next.next))
+            if rbn:
+              #two sites to the right
+              if rbn.next and rbn.next.next:
+                # print("two sites to the right")
+                circle_events.extend(self.addCircle(rbn, rbn.next, rbn.next.next))
 
-            if not rbn.next:
-              self.tail = rbn
+              if not rbn.next:
+                self.tail = rbn
+
             self.validateDBLL()
             return circle_events
           else:
@@ -364,7 +352,7 @@ class BeachODBLL:
           # if(ptr.breakr < ptr.breakl) or (ptr.breakr == ptr.breakl == 1.0) or (ptr.breakr == ptr.breakl == -1.0):
           if(ptr.breakr < ptr.breakl):
             print("should remove: bn {} ptr.x {} bl:{} br:{}".format(ptr, ptr.x, ptr.breakl, ptr.breakr))
-            #self.printDBL()
+            self.printDBL()
             self.remove(ptr)
             # pass
           self.update(ptr.next)
