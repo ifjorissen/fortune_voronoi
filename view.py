@@ -62,6 +62,8 @@ colors = [
   vector(0.72, 0.32, 0) #dark orange
 ]
 
+showCircles = True
+showDelaunay = True
 #voronoi buffers
 site_buffer = None 
 site_color_buffer = None   #
@@ -173,7 +175,7 @@ def draw():
 
   # * * * * * * * * * * * * * * * *
   # Draw the circles
-  if V.circleSegments():
+  if V.circleSegments() and showCircles:
     glLineWidth(3)
     colorAL = glGetAttribLocation(shs,'a_color')
     posAL = glGetAttribLocation(shs,'a_position')
@@ -246,7 +248,7 @@ def draw():
 
   # * * * * * * * * * * * * * * * *
   # Draw delaunay edges
-  if D.face:
+  if D.face and showDelaunay:
     shs = line_shaders
     glUseProgram(shs)
     glLineWidth(3)
@@ -326,7 +328,7 @@ def draw():
 
 def keypress(key, x, y):
   """ Handle a "normal" keypress. """
-  global V, control
+  global V, control, showCircles, showDelaunay
 
   # Handle ESC key.
   if key == b'\033':  
@@ -337,6 +339,16 @@ def keypress(key, x, y):
   if key == b' ': 
     V.scanning = not V.scanning
     tick(0)
+
+  #hide circles
+  if key == b'c':
+    showCircles = not showCircles
+    glutPostRedisplay()
+
+  if key == b'd':
+    showDelaunay = not showDelaunay
+    glutPostRedisplay()
+
 
   # Handle slash key.
   if key == b'm': 

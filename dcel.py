@@ -80,31 +80,24 @@ class Edge():
       #brand new edge
       o.edges[(s1, s2)] = self
 
-    if (s2, s1) in o.edges:
-      if self.source is not None and o.edges[(s2, s1)].dest is None:
-        print("UPDATE TWIN: This edge already existed there: {} src:{} dst:{}, updating that edges dst with nsrc{}".format(o.edges[(s2, s1)], o.edges[(s2, s1)].source, o.edges[(s2, s1)].dest, self.source))
-        o.edges[(s2, s1)].dest = self.source
+    # if (s2, s1) in o.edges:
+    #   if o.edges[(s1, s2)].source and o.edges[(s2, s1)].dest is None:
+    #     print("UPDATE TWIN: This edge already existed there: {} src:{} dst:{}, updating that edges dst with nsrc{}".format(o.edges[(s2, s1)], o.edges[(s2, s1)].source, o.edges[(s2, s1)].dest, self.source))
+    #     o.edges[(s2, s1)].dest = o.edges[(s1, s2)].source
+
+      # if o.edges[(s2, s1)].source is not None:
+      #   o.edges[(s1, s2)].dest = o.edges[(s2, s1)].source
+      #set twins
+      # o.edges[(s1, s2)].twin = o.edges[(s2, s1)]
+      # o.edges[(s2, s1)].twin = o.edges[(s1, s2)]
       print("Good Edge Orientation for {}".format(self))
 
     if o.edges[(s1, s2)].source is not None:
-      o.edges[(s1, s2)].source.edge = o.edges[(s1, s2)]
       o.edges[(s1, s2)].source.outgoing_edges.add(o.edges[(s1, s2)])
-      #set twins
-      # o.edges[(s1, s2)].twin = o.edges[(s2, s1)]
-      # o.edges[(s2, s1)].twin = o.edges[(s1, s2)] 
-      # self.dest = self.twin.source
 
   #even though we know where the edge goes, if the circle event hasn't 
   #occurred yet we can't draw the whole thing
-  def clipEdge(self):
-    '''
-    given an edge in the DCEL, return it's endpoints as points
-    '''
-    pass
-    # return e1, e2
 
-  def handleCircle(self, circle, o):
-    pass
 
   def toBuffer(self):
     #draw a line beginning at breakpoint(or the vertex) and going through midpt
@@ -170,57 +163,17 @@ class VoronoiDCEL():
     e1t.dest = e1.source
     e1.twin = e1t
     e1t.twin = e1
-    e1.twin.next = e2
+    e1t.next = e2
 
     e2t.dest = e2.source
     e2.twin = e2t
     e2t.twin = e2
-    e2.twin.next = e3
+    e2t.next = e3
 
     e3t.dest = e3.source
     e3.twin = e3t
     e3t.twin = e3
-    e3.twin.next = e1
-
-    #add twins if they don't exist 
-    # if e1.twin is None:
-    #   Edge(v.sites[1], v.sites[0], None, self)
-    #   e1t = self.edges[(v.sites[1], v.sites[0])]
-    #   e1t.dest = e1.source
-    #   if e1 is not e1t.twin:
-    #     print("WHAT setting e1's twin")
-    #     e1.twin = e1t
-    #     if e1t.twin is not e1:
-    #       print("WHAT setting e1t's twin")
-    #       e1t.twin = e1
-    #   print("created {} src:{} dst:{}, twin:{}".format(e1t, e1t.source, e1t.dest, e1t.twin))
-    # e1.twin.next = e2
-
-    # if e2.twin is None:
-    #   Edge(v.sites[2], v.sites[1], None, self)
-    #   e2t = self.edges[(v.sites[2], v.sites[1])]
-    #   e2t.dest = e2.source
-    #   if e2 is not e2t.twin:
-    #     print("WHAT setting e2's twin")
-    #     e2.twin = e2t
-    #     if e2t.twin is not e2:
-    #       print("WHAT setting e2t's twin")
-    #       e2t.twin = e3
-    #   print("created {} src:{} dst:{}, twin:{}".format(e2t, e2t.source, e2t.dest, e2t.twin))
-    # e2.twin.next = e3
-
-    # if e3.twin is None:
-    #   Edge(v.sites[0], v.sites[2], None, self)
-    #   e3t = self.edges[(v.sites[0], v.sites[2])]
-    #   e3t.dest = e3.source
-    #   if e3 is not e3t.twin:
-    #     print("WHAT setting e3's twin")
-    #     e3.twin = e3t
-    #     if e3t.twin is not e3:
-    #       print("WHAT setting e3t's twin")
-    #       e3t.twin = e3
-    #   print("created {} src:{} dst:{}, twin:{}".format(e3t, e3t.source, e3t.dest, e3t.twin))
-    # e3.twin.next = e1
+    e3t.next = e1
 
     return [e1, e2, e3]
 
@@ -276,6 +229,10 @@ class VoronoiDCEL():
       print("Sites: {} edge:{} src:{} dst:{} next: {} twin: {}".format(str(sites), edge, edge.source, edge.dest, edge.next, edge.twin))
     print("\n----**** done with printEdges ****----")
 
+  def validateEdges():
+    print("\n----**** validateEdges ****----")
+    print("\n----**** done with validateEdges ****----")
+
   def validateCells(self):
     print("\n----**** validateCells ****----")
     self.postProcessEdges()
@@ -289,6 +246,9 @@ class VoronoiDCEL():
           while e is not None and e.source is not vertex:
             print("following the outgoing edge {}".format(e, self.infv))
             print("\tedge: {} source: {} dest: {}: twin: {}: next: {}".format(e, e.source, e.dest, e.twin, e.next))
+            if e.next is not None and e.dest is not e.next.source:
+              print("\tERROR edge: {} source: {} dest: {}: twin: {}: next: {}".format(e, e.source, e.dest, e.twin, e.next, e.next.source))
+              return False
             e = e.next
           if e is None:
             print("RESULT: e is none, vertex {} did not form a valid cell...".format(vertex))

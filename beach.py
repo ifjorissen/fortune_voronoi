@@ -229,29 +229,28 @@ class BeachODBLL:
             bn.breakl = bn.x
             bn.breakr = bn.x
 
-            pl, pr = ptr.beach.inv_arceqn()
-            rbn = BeachNode(ptr.beach, bn, ptr.next, bn.breakr, ptr.breakr)
-            if ptr.next:
-              rbn.next.prev = rbn
-            bn.next = rbn
-            ptr.breakr = bn.breakl
-            bn.prev = ptr
-            ptr.next = bn
-
-            #make a new node to the right if we need to
-            # pl, pr = ptr.beach.inv_arceqn()
-            # if bn.x > pl or bn.x < pr:
-            #   rbn = BeachNode(ptr.beach, bn, ptr.next, bn.breakr, ptr.breakr)
-            #   if ptr.next:
-            #     rbn.next.prev = rbn
-            #   bn.next = rbn
-
-            # else:
-            #   bn.next = ptr.next
-
+            # rbn = BeachNode(ptr.beach, bn, ptr.next, bn.breakr, ptr.breakr)
+            # if ptr.next:
+            #   rbn.next.prev = rbn
+            # bn.next = rbn
             # ptr.breakr = bn.breakl
             # bn.prev = ptr
             # ptr.next = bn
+
+            #make a new node to the right if we need to
+            pl, pr = ptr.beach.inv_arceqn()
+            if bn.x > pl or bn.x < pr:
+              rbn = BeachNode(ptr.beach, bn, ptr.next, bn.breakr, ptr.breakr)
+              if ptr.next:
+                rbn.next.prev = rbn
+              bn.next = rbn
+
+            else:
+              bn.next = ptr.next
+
+            ptr.breakr = bn.breakl
+            bn.prev = ptr
+            ptr.next = bn
 
 
             #add circle events
@@ -335,11 +334,12 @@ class BeachODBLL:
       else:
       #update right breakpoint of ptr and left bkpt of ptr.next
         if ptr.next is not None:
+          bkpts = ptr.beach.intersect(ptr.next.beach)
           if ptr.prev is None:
             ptr.breakl, tmp = ptr.beach.inv_arceqn()
+            ptr.breakl = min(ptr.breakl, min(bkpts))
             # if(ptr.breakr < ptr.breakl) or (ptr.breakr == ptr.breakl == 1.0) or (ptr.breakr == ptr.breakl == -1.0):
             #   self.remove(ptr)
-          bkpts = ptr.beach.intersect(ptr.next.beach)
           if ptr.y >= ptr.next.y:
             bpt = min(bkpts)
             ptr.breakr = bpt
@@ -350,16 +350,16 @@ class BeachODBLL:
             ptr.next.breakl = bpt
 
           # if(ptr.breakr < ptr.breakl) or (ptr.breakr == ptr.breakl == 1.0) or (ptr.breakr == ptr.breakl == -1.0):
-          if(ptr.breakr < ptr.breakl):
+          if (ptr.breakr < ptr.breakl) and (ptr.breakl > -1.0) and (ptr.breakr > -1.0):
             print("should remove: bn {} ptr.x {} bl:{} br:{}".format(ptr, ptr.x, ptr.breakl, ptr.breakr))
             self.printDBL()
-            self.remove(ptr)
+            # self.remove(ptr)
+            # self.printDBL()
+            print("REMOVED: bn {} ptr.x {} bl:{} br:{}".format(ptr, ptr.x, ptr.breakl, ptr.breakr))
             # pass
           self.update(ptr.next)
         else:
           tmp, ptr.breakr = ptr.beach.inv_arceqn()
-          # if(ptr.breakr < ptr.breakl) or (ptr.breakr == ptr.breakl == 1.0) or (ptr.breakr == ptr.breakl == -1.0):
-            # self.remove(ptr)
           return
 
 
