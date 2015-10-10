@@ -2,6 +2,8 @@ import math
 from circle import Circle, InvalidCircle, NotEmptyCircle, CircleAlreadyCreated
 
 class Beach:
+  #default bounds if we're using the opengl simulation
+  bounds = {"xmin": -1.0, "xmax": 1.0, "ymin": -1.0, "ymax": 1.0}
   def __init__(self, site, scanline):
     self.directrix = scanline
     self.focus = site
@@ -47,8 +49,9 @@ class Beach:
 
     return y
 
-  def inv_arceqn(self, y=1.0):
+  def inv_arceqn(self):
     # y = y
+    y = self.bounds["ymax"]
     a = self.focus.x
     b = self.focus.y
     c = self.directrix.y
@@ -338,8 +341,6 @@ class BeachODBLL:
           if ptr.prev is None:
             ptr.breakl, tmp = ptr.beach.inv_arceqn()
             ptr.breakl = min(ptr.breakl, min(bkpts))
-            # if(ptr.breakr < ptr.breakl) or (ptr.breakr == ptr.breakl == 1.0) or (ptr.breakr == ptr.breakl == -1.0):
-            #   self.remove(ptr)
           if ptr.y >= ptr.next.y:
             bpt = min(bkpts)
             ptr.breakr = bpt
@@ -349,13 +350,15 @@ class BeachODBLL:
             ptr.breakr = bpt
             ptr.next.breakl = bpt
 
-          # if(ptr.breakr < ptr.breakl) or (ptr.breakr == ptr.breakl == 1.0) or (ptr.breakr == ptr.breakl == -1.0):
-          if (ptr.breakr < ptr.breakl) and (ptr.breakl > -1.0) and (ptr.breakr > -1.0):
-            print("should remove: bn {} ptr.x {} bl:{} br:{}".format(ptr, ptr.x, ptr.breakl, ptr.breakr))
+          if (ptr.breakr < ptr.breakl):
+            if (ptr.breakl > -1.0) and (ptr.breakr > -1.0):
+              print("URGENT: should remove: bn {} ptr.x {} bl:{} br:{}".format(ptr, ptr.x, ptr.breakl, ptr.breakr))
+
+            else:
+              print("OUT OF BOUNDS: should remove: bn {} ptr.x {} bl:{} br:{}".format(ptr, ptr.x, ptr.breakl, ptr.breakr))
             self.printDBL()
             # self.remove(ptr)
             # self.printDBL()
-            print("REMOVED: bn {} ptr.x {} bl:{} br:{}".format(ptr, ptr.x, ptr.breakl, ptr.breakr))
             # pass
           self.update(ptr.next)
         else:
@@ -404,6 +407,9 @@ class BeachODBLL:
           return arcs[mindist]
       else:
         cur = cur.next
+
+  def getHead(self):
+    return self.head
 
   def toBuffer(self):
     self.update(self.head)

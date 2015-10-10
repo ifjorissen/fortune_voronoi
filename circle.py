@@ -102,6 +102,8 @@ class Circle:
     self.s3 = s3
     self.already_created()
     self.set_eqn()
+    # if self.low is not None:
+    #   self.y = self.low.y
 
   def __str__(self):
     return "cx:{}, cy:{}, clow:{}".format(self.c.x, self.c.y, self.csites(), self.low)

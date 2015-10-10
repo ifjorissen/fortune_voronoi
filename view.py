@@ -507,7 +507,7 @@ def tick(val):
 
 def init():
   global V, D
-  V = Voronoi()
+  V = Voronoi(view=True)
   D = V.delaunay
   global line_shaders, pt_shaders
   line_shaders = init_shaders('shaders/vert_shader.glsl',

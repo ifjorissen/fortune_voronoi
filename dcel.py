@@ -53,17 +53,11 @@ class Edge():
     self.c = vector(1.0,1.0,1.0)
     self.s1 = s1
     self.s2 = s2
-    # self.arc = arc
-      #do math
-
-    # self.end1 = point(arc.breakr, arc.beach.arcqn(arc.breakr))
-    # self.end2 = point((self.s1.x + self.s2.x)/2.0, (self.s1.y + self.s2.x)/2.0)
 
     #for use in data stucture
     self.face = None
     self.twin = None
     self.next = None
-    # self.prev = None
     self.source = source
     self.dest = None
     
@@ -80,24 +74,8 @@ class Edge():
       #brand new edge
       o.edges[(s1, s2)] = self
 
-    # if (s2, s1) in o.edges:
-    #   if o.edges[(s1, s2)].source and o.edges[(s2, s1)].dest is None:
-    #     print("UPDATE TWIN: This edge already existed there: {} src:{} dst:{}, updating that edges dst with nsrc{}".format(o.edges[(s2, s1)], o.edges[(s2, s1)].source, o.edges[(s2, s1)].dest, self.source))
-    #     o.edges[(s2, s1)].dest = o.edges[(s1, s2)].source
-
-      # if o.edges[(s2, s1)].source is not None:
-      #   o.edges[(s1, s2)].dest = o.edges[(s2, s1)].source
-      #set twins
-      # o.edges[(s1, s2)].twin = o.edges[(s2, s1)]
-      # o.edges[(s2, s1)].twin = o.edges[(s1, s2)]
-      print("Good Edge Orientation for {}".format(self))
-
     if o.edges[(s1, s2)].source is not None:
       o.edges[(s1, s2)].source.outgoing_edges.add(o.edges[(s1, s2)])
-
-  #even though we know where the edge goes, if the circle event hasn't 
-  #occurred yet we can't draw the whole thing
-
 
   def toBuffer(self):
     #draw a line beginning at breakpoint(or the vertex) and going through midpt
@@ -112,13 +90,6 @@ class Cell():
     self.edges = []
     self.vertices = []
     self.vv = voronoi_vertex
-
-
-class DoublyConnectedEdgeList():
-  def __init__(self):
-    self.vertex = []
-    self.edge = {}
-    self.cell = []
 
 class VoronoiDCEL():
   def __init__(self):
@@ -140,7 +111,12 @@ class VoronoiDCEL():
     return v
 
   def addEdges(self, v):
+    #To do: ideally a create or update type function because this is
+    # a) wildly inefficient and b) feels really wrong
     #constructs the three outgoing edges (i.e v is the source)
+    #check to see if the edges exist, if they do, update them
+    #if they don't create them
+
     #add or update these edges
     Edge(v.sites[0], v.sites[1], v, self)
     Edge(v.sites[1], v.sites[2], v, self)
@@ -198,30 +174,13 @@ class VoronoiDCEL():
           print("edge:{} src:{} dst:{} next: {} twin: {}".format(edge, edge.source, edge.dest, edge.next, edge.twin))
           print("twin:{} src:{} dst:{} next: {} twin: {}\n".format(edge.twin, edge.twin.source, edge.twin.dest, edge.twin.next, edge.twin.twin))
 
-    # for edge in list(self.edges.values()):
-    #   if edge.source is None:
-    #     edge.source = infv
-    #     print("edge{} has no source: edge.twin.source {}".format(edge, edge.twin.source))
-    #     if edge.twin.dest is None:
-    #       if edge.twin.next is not None:
-    #         print("Settin dest, checking that edge.twin.next.source {} is edge.src{}".format(edge.twin.next.source, edge.source))
-    #         edge.twin.dest = edge.twin.next.source
-    #       else:
-    #         print("edge {} edge.next{}".format(edge, edge.next))
-    #         print("edge.next.twin{}".format(edge.next.twin))
-    #         print("edge.next.twin.next {}".format(edge.next.twin.next))
-    #         print("edge.next.twin.next.twin {}".format(edge.next.twin.next.twin))
-    #         print("Edge.twin.next DNE is edge{} edge.src{}, edge.next.twin.next.twin.src{}".format(edge, edge.source, edge.next.twin.next.twin.source))
-    #         edge.twin.dest = edge.source
-    #         edge.twin.next = edge.next.twin.next.twin
-    #         print("Edge.twin.next {} edge.next.twin.next.twin.next{}\n".format(edge.twin.next, edge.next.twin.next.twin.next))
-    #   else:
-    #     print("edge seemed fine... vinf: {}".format(self.infv))
-    #     # if edge.twin.source is None:
-    #       # pass
-    #     print("edge:{} src:{} dst:{} next: {} twin: {}".format(edge, edge.source, edge.dest, edge.next, edge.twin))
-    #     print("twin:{} src:{} dst:{} next: {} twin: {}\n".format(edge.twin, edge.twin.source, edge.twin.dest, edge.twin.next, edge.twin.twin))
     print("----**** done with postprocessEdges ****----")
+
+  def printVertices(self):
+    print("\n----**** printEdges ****----")
+    for vertex in self.vertices:
+      print("Vertex {} x: {} y: {}".format(vertex, vertex.position.x, vertex.position.y))
+    print("\n----**** done with printEdges ****----")
 
   def printEdges(self):
     print("\n----**** printEdges ****----")
@@ -236,7 +195,7 @@ class VoronoiDCEL():
   def validateCells(self):
     print("\n----**** validateCells ****----")
     self.postProcessEdges()
-    self.printEdges()
+    # self.printEdges()
     for vertex in self.vertices:
       if vertex is not self.infv:
         print("\nvertex {} with {} outgoing edges".format(vertex, len(vertex.outgoing_edges)))
@@ -247,7 +206,8 @@ class VoronoiDCEL():
             print("following the outgoing edge {}".format(e, self.infv))
             print("\tedge: {} source: {} dest: {}: twin: {}: next: {}".format(e, e.source, e.dest, e.twin, e.next))
             if e.next is not None and e.dest is not e.next.source:
-              print("\tERROR edge: {} source: {} dest: {}: twin: {}: next: {}".format(e, e.source, e.dest, e.twin, e.next, e.next.source))
+              print("\tERROR edge: {} source: {} dest: {}: twin: {}: next: {} next.source: {}".format(e, e.source, e.dest, e.twin, e.next, e.next.source))
+              print("RESULT: e.next.source is not e.dest, vertex {} did not form a valid cell...".format(vertex))
               return False
             e = e.next
           if e is None:
@@ -270,28 +230,11 @@ class VoronoiDCEL():
     '''
     given an edge, return the endpoints (as points, to be drawn by opengl)
     '''
-    # if edge.source is self.infv:
-    #   # we don't *really* need to draw this edge, but it's basically as below
-    #   e1 = edge.dest.position
-    #   #make a movement vector 
-    #   #this is the angle of the vector
-    #   mp_sites = point((edge.s1.x + edge.s2.x)/2.0, (edge.s1.y + edge.s2.y)/2.0, 0.0)
-    #   dy = edge.dest.position.y - mp_sites.y
-    #   dx = edge.dest.position.x - mp_sites.x
-    #   v = vector(dx, dy, 0.0)
-    #   unit_v = v.unit()
-    #   v2 = unit_v.scale(2.0*sqrt(2.0))
-    #   negv2 = v2.neg()
-    #   #now v2 has length 2*2(1/2) (the total length of the longest diagonal)
-    #   #do a point vector sum
-    #   e2 = e1.plus(negv2)
-    #   return e1, e2
-
     if edge.dest is self.infv:
       e1 = edge.source.position
       #make a movement vector 
       #this is the angle of the vector
-      mp_sites = point((edge.s1.x + edge.s2.x)/2.0, (edge.s1.y + edge.s2.y)/2.0, 0.0)
+      mp_sites = point((edge.s1.x + edge.s2.x)/2.0, (edge.s1.y + edge.s2.y), 0.0)
       dy = edge.source.position.y - mp_sites.y
       dx = edge.source.position.x - mp_sites.x
       v = vector(dx, dy, 0.0)
@@ -314,7 +257,9 @@ class VoronoiDCEL():
       color2 = vector(0,  1.0, 0)
       color3 = vector(1.0, 0, 0)
       for edge in self.edges.values():
-        if edge.source is not None:
+        #we only need to draw half the edges
+        #right now, we're only excluding the outgoing half infinite edges
+        if edge.source is not self.infv:
           e1, e2 = self.clipEdge(edge)
           edges.extend(e1.components())
           edges.extend(e2.components())
@@ -322,11 +267,7 @@ class VoronoiDCEL():
           colors.extend(edge.s2.c.components())
       return (edges, colors)
     else:
-      print("some vornonoi cells were not valid")
-
-    
-
-
+      print("ERROR: some voronoi cells were not valid")
 
   def constructCells(self):
     '''constructs voronoi cells for the diagram, simliar to the faces in we.py (counterclockwise)'''
