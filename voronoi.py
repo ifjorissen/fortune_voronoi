@@ -36,11 +36,11 @@ class Voronoi:
     self.beachline = BeachODBLL()
     self.circles = []
     self.vvertices = []
-    self.createScanline()
     self.handled_circles = []
     self.delaunay = Delaunay(self)
     self.edgeDCEL = VoronoiDCEL()
     self.bounds = {"xmin": -1.0, "xmax": 1.0, "ymin": -1.0, "ymax": 1.0}
+    self.createScanline()
 
   def read(self, filename):
     #a site file contains one site per line, x, y coordinates
@@ -77,6 +77,7 @@ class Voronoi:
     self.bounds = {"xmin": site_xmin, "xmax": site_xmax, "ymin": site_ymin, "ymax": site_ymax}
     print("Bounds: xmin: {} xmax: {} ymin: {} ymax: {}".format(site_xmin, site_xmax, site_ymin, site_ymax))
     Beach.bounds = self.bounds
+    self.createScanline()
     print("\n----**** done with voronoi read ****----")
 
 
@@ -99,7 +100,12 @@ class Voronoi:
     print("\n----**** voronoi precompute ****----")
     # self.event_pq.sort(key=lambda site: site.dist2scan, reverse=True)
     #can't we just order by y coordinate?
-    self.event_pq.sort(key=lambda site: site.y, reverse=True)
+    self.event_pq.sort(key=lambda site: site.y, reverse=False)
+    for site in self.sites:
+      site.update(self.scanline) 
+
+    for circle in self.circles:
+      circle.update(self.scanline)
 
     while (len(self.event_pq) > 0):
       #take the latest event
@@ -108,11 +114,12 @@ class Voronoi:
 
       #process the event
       # self.processEvent()
+      self.scanline.y = event.y
       self.beachline.update(self.beachline.getHead())
       if type(event) is Site:
         print("\nsite event @{}".format(event.y))
         site = event
-        self.scanline.y = site.y
+        # self.scanline.y = site.y
         beach = Beach(site, self.scanline)
         circle_events = self.beachline.insert(beach)
         self.beaches.append(beach)
@@ -123,7 +130,7 @@ class Voronoi:
 
       else: 
         circle = event
-        self.scanline.y = circle.low.y
+        # self.scanline.y = circle.low.y
         print("\ncircle event @(cx{}, cy{}), sy{}".format(circle.c.x, circle.c.y, self.scanline.y))
         arc = self.beachline.find_by_x(circle)
         self.vvertices.append(circle.c)
@@ -148,13 +155,9 @@ class Voronoi:
               print("Weird, bro: circle  c:{} cx:{}".format(c, c.c))
               # pass
         self.handled_circles.append(circle)
-      self.event_pq.sort(key=lambda site: site.y, reverse=True)
-      #update all the new sites
-      # for site in self.sites:
-      #   site.update(self.scanline) 
-
-      # for circle in self.circles:
-      #   circle.update(self.scanline)
+        #update all the new sites
+      self.event_pq.sort(key=lambda site: site.y, reverse=False)
+    self.edgeDCEL.finish()
 
     print("\n----**** done with voronoi precompute ****----")
 
@@ -168,7 +171,11 @@ class Voronoi:
     return edges, cBuf
 
   def createScanline(self):
-    self.scanline = Scanline()
+    e1 = point(self.bounds["xmin"], self.bounds["ymax"], 0.0)
+    e2 = point(self.bounds["xmax"], self.bounds["ymax"], 0.0)
+    self.scanline = Scanline(e1, e2)
+    print(self.scanline.e1)
+    print(self.scanline.e2)
 
   def sitesToBuffer(self):
     return self.site_buffer, self.color_buffer
@@ -264,7 +271,7 @@ class Voronoi:
               print("circle  c:{} cx:{}".format(c, c.c))
             pass
         self.handled_circles.append(circle)
-      self.event_pq.sort(key=lambda site: site.y, reverse=True)
+      self.event_pq.sort(key=lambda site: site.y, reverse=False)
 
 
   def update(self):
@@ -276,7 +283,7 @@ class Voronoi:
       for circle in self.circles:
         circle.update(self.scanline)
 
-      self.event_pq.sort(key=lambda site: site.dist2scan, reverse=True)
+      self.event_pq.sort(key=lambda site: site.y, reverse=False)
       # if len(self.event_pq)>0 and (self.event_pq[-1].dist2scan <= math.fabs(self.scanline.dy/2)):
       #   self.processEvent()
       if len(self.event_pq) == 0:

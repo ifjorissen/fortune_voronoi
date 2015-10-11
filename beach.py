@@ -256,6 +256,7 @@ class BeachODBLL:
               bn.next = ptr.next
 
             ptr.breakr = bn.breakl
+            bn.breakr = bn.next.breakl
             bn.prev = ptr
             ptr.next = bn
 
@@ -344,7 +345,11 @@ class BeachODBLL:
           bkpts = ptr.beach.intersect(ptr.next.beach)
           if ptr.prev is None:
             ptr.breakl, tmp = ptr.beach.inv_arceqn()
-            ptr.breakl = min(ptr.breakl, min(bkpts))
+            # if breakl == ptr.x:
+            #   print(ptr.breakl)
+            #   ptr.breakl = min(ptr.breakl, breakl)
+            # print("FIRST NODE ptr.breakl {} breakr {} ptr.next.breakl {} bkptsL{} bkptsR{}".format(ptr.breakl, tmp, ptr.next.breakl, bkpts[0], bkpts[1]))
+            # ptr.breakl = min(ptr.breakl, min(bkpts))
           if ptr.y >= ptr.next.y:
             bpt = min(bkpts)
             ptr.breakr = bpt
@@ -355,9 +360,8 @@ class BeachODBLL:
             ptr.next.breakl = bpt
 
           if (ptr.breakr < ptr.breakl):
-            if (ptr.breakl > -1.0) and (ptr.breakr > -1.0):
+            if (ptr.breakl > ptr.beach.bounds["xmin"]) and (ptr.breakr > ptr.beach.bounds["xmin"]):
               print("URGENT: should remove: bn {} ptr.x {} bl:{} br:{}".format(ptr, ptr.x, ptr.breakl, ptr.breakr))
-
             else:
               print("OUT OF BOUNDS: should remove: bn {} ptr.x {} bl:{} br:{}".format(ptr, ptr.x, ptr.breakl, ptr.breakr))
             self.printDBL()
