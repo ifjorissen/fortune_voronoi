@@ -6,5 +6,7 @@ def main():
   v.precompute()
   v.validateEdges()
   v.outputVoronoi()
+  print("sup")
+  v.edgesToBuffer()
 
 if __name__ == "__main__": main()
