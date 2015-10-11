@@ -25,7 +25,10 @@ class Beach:
     try:
       x2 = ((math.sqrt((-b*c+b*j+c*c - c*j)*(a*a - 2.0*a*h + b*b - 2.0*b*j + h*h + j*j))) + a*c-a*j + b*h - c*h)/(b-j)
     except:
-      x2 = min(a, h)
+      if x1 < a:
+        x2 = max(a, h)
+      else:
+        x2 = min(a, h)
 
     if x1 > x2:
       return [x2, x1]
@@ -74,7 +77,7 @@ class Beach:
 
     if self.focus.y >= self.directrix.y:
       i = bl
-      while i <= br:
+      while i < br:
         y = self.arceqn(i)
         cBuf.extend(c.components()) 
         arcBuf.extend([i, y, 0.0])
@@ -243,9 +246,10 @@ class BeachODBLL:
             #make a new node to the right if we need to
             pl, pr = ptr.beach.inv_arceqn()
             if bn.x > pl or bn.x < pr:
-              rbn = BeachNode(ptr.beach, bn, ptr.next, bn.breakr, ptr.breakr)
+              rbn = BeachNode(ptr.beach, bn, ptr.next, bn.breakr, pr)
               if ptr.next:
                 rbn.next.prev = rbn
+                rbn.breakr = rbn.next.breakl
               bn.next = rbn
 
             else:

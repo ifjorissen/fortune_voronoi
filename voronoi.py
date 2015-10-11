@@ -148,6 +148,7 @@ class Voronoi:
               print("Weird, bro: circle  c:{} cx:{}".format(c, c.c))
               # pass
         self.handled_circles.append(circle)
+      self.event_pq.sort(key=lambda site: site.y, reverse=True)
       #update all the new sites
       # for site in self.sites:
       #   site.update(self.scanline) 
@@ -224,6 +225,8 @@ class Voronoi:
       print("processing an event")
       print([site.dist2scan for site in self.event_pq])
       event = self.event_pq.pop()
+      self.scanline.y = event.y
+      self.beachline.update(self.beachline.getHead())
       if type(event) is Site:
         #To Do: circle events get removed from sites
         print("\nsite event @{}".format(self.scanline.y))
@@ -261,7 +264,7 @@ class Voronoi:
               print("circle  c:{} cx:{}".format(c, c.c))
             pass
         self.handled_circles.append(circle)
-      self.event_pq.sort(key=lambda site: site.dist2scan, reverse=True)
+      self.event_pq.sort(key=lambda site: site.y, reverse=True)
 
 
   def update(self):
