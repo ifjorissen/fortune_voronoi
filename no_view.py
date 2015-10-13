@@ -4,7 +4,7 @@ def main():
   v = Voronoi(view=False)
   v.read('sites.txt')
   v.precompute()
-  # v.validateEdges()
+  v.validateEdges()
   v.outputVoronoi()
   print("sup")
   # v.edgesToBuffer()

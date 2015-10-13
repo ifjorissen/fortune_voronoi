@@ -2,7 +2,7 @@ from geometry import point, vector
 # from math import inf
 from itertools import chain, combinations
 from we import fan
-from math import pi, sqrt
+from math import pi, sqrt, acos, atan, atan2, degrees, cos
 
 class Vertex():
   def __init__(self, circle, o):
@@ -36,6 +36,18 @@ class Vertex():
     else:
       return False
 
+  def sortEdges(self):
+    '''
+    take the set of outgoing edges and sort them by angle clockwise
+    '''
+    self.outgoing_edges.sort(key=lambda edge:edge.angle, reverse=True)
+
+  def sortTwinEdges(self):
+    '''
+    take the set of outgoing edges and sort them by angle clockwise
+    '''
+    self.outgoing_edges.sort(key=lambda edge:edge.twin.angle, reverse=False)
+
   def validate_vertex(self):
     if len(self.incident_edges) == self.outgoing_edges == 3:
       #validate that all incident edges have a twin that's an outgoing edge
@@ -45,6 +57,16 @@ class Vertex():
       #raise an invalid vertex error
       print("error")
       return False
+
+def hsort(e1, e2):
+  '''Sorts two edges counterclockwise'''
+
+  if e1.angle < e2.angle:
+      return -1
+  elif e1.angle > e2.angle:
+      return 1
+  else:
+      return 0
 
 class Edge():
   def __init__(self, s1, s2, source, o):
@@ -59,6 +81,7 @@ class Edge():
     self.next = None
     self.prev = None
     self.source = source
+    self.angle = self.angle()
     # self.dest = None
 
 
@@ -76,6 +99,25 @@ class Edge():
       o.edges[(s2, s1)].twin = self
 
     o.edges[(s1, s2)] = self
+
+  def angle(self):
+    # dx = self.s2.x-self.s1.x
+    # dy = self.s2.y-self.s1.y
+    dx = self.s2.x-self.s1.x
+    dy = self.s2.y-self.s1.y
+    # return degrees(atan2(-dx, dy))
+    # return degrees(atan(-dx/dy))
+    l = sqrt(dx**2 + dy**2)
+    if dx > 0:
+        return degrees(acos(-dy/l))
+    else:
+        return degrees(2.0*pi - acos(-dy/l))
+    # l = sqrt(dx**2 + dy**2)
+    # # return cos(-dy/l)
+    # if dx > 0:
+    #   return cos(-dy/l)
+    # else:
+    #   return - cos(-dy/l)
 
   def addSource(self, o, source):
     self.source = source
@@ -272,8 +314,8 @@ class VoronoiDCEL():
 
   def validateCells(self):
     print("\n----**** validateCells ****----")
-    self.postProcessEdges()
-    self.printEdges()
+    # self.postProcessEdges()
+    # self.printEdges()
     for vertex in self.vertices:
       if vertex is not self.infv:
         print("\nvertex {} with {} outgoing edges".format(vertex, len(vertex.outgoing_edges)))
@@ -284,13 +326,6 @@ class VoronoiDCEL():
           while e is not None and e.source is not vertex:
             print("following the outgoing edge {}".format(e, self.infv))
             print("\tedge: {} face:{} source: {}: twin: {}: prev: {} next: {}".format(e, e.face, e.source, e.twin, e.prev, e.next))
-            # if e.next is not None and e.dest is not e.next.source:
-            #   print("\tERROR next: {} face: {} next.source: {} next.dest: {}".format(e.next, e.face, e.next.source, e.next.dest))
-            #   print("RESULT: e.next.source is not e.dest, vertex {} did not form a valid cell...".format(vertex))
-            #   if e.next.source is vertex:
-            #     print("but this seems like a valid cell ... ")
-            #   else:
-            #     return False
             e = e.next
           if e is None:
             print("RESULT: e is none, vertex {} did not form a valid cell...".format(vertex))
@@ -323,6 +358,11 @@ class VoronoiDCEL():
 
     for vertex in self.vertices:
       if vertex is not self.infv:
+        # print("Pre sort for vertex {}".format(vertex))
+        # [print(edge, edge.angle, edge.twin.angle) for edge in vertex.outgoing_edges]
+        # vertex.sortEdges()
+        # print("Post sort for vertex {}".format(vertex))
+        # [print(edge, edge.angle, edge.twin.angle) for edge in vertex.outgoing_edges]
         for i, edge in enumerate(vertex.outgoing_edges):
           print("{} vertex {} edge{}".format(i, vertex, edge))
           try:
@@ -330,26 +370,65 @@ class VoronoiDCEL():
           except:
             etwin = Edge(edge.s2, edge.s1, self.infv, self)
           #set edges
-          edge.twin = etwin
-          etwin.twin = edge
-          if (i+1) < len(vertex.outgoing_edges):
+          # print("edge.twin {}, etwin {}".format(edge.twin, etwin))
+          # edge.twin = etwin
+          # etwin.twin = edge
+          if i < len(vertex.outgoing_edges)-1:
             etwin.next = vertex.outgoing_edges[i+1]
-            vertex.outgoing_edges[i+1].prev = etwin.next
+            vertex.outgoing_edges[i+1].prev = etwin
           else:
             etwin.next = vertex.outgoing_edges[0]
             vertex.outgoing_edges[0].prev = etwin
+        # print("Pre sort for vertex {}".format(vertex))
+        # [print(edge, edge.angle, edge.twin.angle) for edge in vertex.outgoing_edges]
+        # vertex.sortEdges()
+        # print("Post sort for vertex {}".format(vertex))
+        # [print(edge, edge.angle, edge.twin.angle) for edge in vertex.outgoing_edges]
+          # if etwin.source is self.infv:
+          #     etwin.prev = etwin.next
+
+    #now handle the infinite vertex
+    print("Pre sort for self.inf {}".format(self.infv))
+    [print(edge, edge.angle, edge.twin.angle) for edge in self.infv.outgoing_edges]
+    self.infv.sortTwinEdges()
+    print("Post sort for self.infv {}".format(self.infv))
+    [print(edge, edge.angle) for edge in self.infv.outgoing_edges]
+    for i, edge in enumerate(self.infv.outgoing_edges):
+      if i < len(self.infv.outgoing_edges)-1:
+        edge.twin.next = self.infv.outgoing_edges[i+1]
+        self.infv.outgoing_edges[i+1].prev = edge.twin
+      else:
+        edge.twin.next = self.infv.outgoing_edges[0]
+        self.infv.outgoing_edges[0].prev = edge.twin
+
+
 
     for vertex in self.vertices:
       if vertex is not self.infv:
         for i, e in enumerate(vertex.outgoing_edges):
           if e.twin.prev is not None:
-            print("Setting e{} e.next: {} e.twin: {} e.twin.prev: {} e.twin.prev.twin: {}".format(e, e.next, e.twin, e.twin.prev, e.twin.prev.twin))
-            print(e.next)
-            e.next = e.twin.prev.twin
-            e.twin.prev.twin.prev = e
+            if e.twin.source is self.infv:
+              print("\n HALF INF EDGE")
+            else:
+              print("\n NORMAL EDGE EDGE")
+            print("Setting e{} e.next: {} e.twin: {} e.twin.prev: {} e.twin.prev.twin: {}, e.twin.prev.twin.prev: {}, e.twin.prev.twin.prev.twin: {}".format(e, e.next, e.twin, e.twin.prev, e.twin.prev.twin, e.twin.prev.twin.prev, e.twin.prev.twin.prev.twin))
+            print("source info: infv: {} e.src: {} e.twin.src {} e.twin.prev.src: {} e.twin.prev.twin.src: {} e.twin.prev.twin.prev.src: {} e.twin.prev.twin.prev.twin.src: {}".format(self.infv, e.source, e.twin.source, e.twin.prev.source, e.twin.prev.twin.source, e.twin.prev.twin.prev.source, e.twin.prev.twin.prev.twin.source))
+            if e.next is not None:
+              print("e.next: {} e.next.source {}".format(e.next, e.next.source))
+            else:
+              print("e.next: {}".format(e.next))
+              # e.next = e.twin.prev.twin
+            # e.next = e.twin.prev.twin.prev.twin
+            print("RESULT: e{} e.face:{} e.next: {} e.next.face: {} e.next.source {} e.twin.prev.twin {} e.twin.prev.twin.prev: {}".format(e, e.face, e.next, e.next.face, e.next.source, e.twin.prev.twin, e.twin.prev.twin.prev))
           else:
-            print("HMMMM no twin prev for edge")
-    pass
+            if e.twin.source is self.infv:
+              print("oh this is a half infinite edge")
+              print("e.twin {} e.twin.next:{} e.twin.next.next: {} e.twin.next.prev {}".format(e.twin, e.twin.next, e.twin.next.next, e.twin.next.prev))
+              # print("e.next.twin {} e.next.twin.src: {}".format(e.next.twin, e.next.twin.source))
+            else:
+              print("HMMMM no twin prev for edge")
+    # self.validateCells()
+    # pass
 
   def clipEdge(self, edge):
     '''
