@@ -61,9 +61,11 @@ colors = [
   vector(0, 0.6, .7), #teal
   vector(0.72, 0.32, 0) #dark orange
 ]
-
+#visibility keys
 showCircles = True
 showDelaunay = True
+showBeachfront = True
+
 #voronoi buffers
 site_buffer = None 
 site_color_buffer = None   #
@@ -155,7 +157,7 @@ def draw():
   shs = line_shaders
   glUseProgram(shs)
   glEnable(GL_LINE_SMOOTH)
-  if V.beachfrontSegments():
+  if V.beachfrontSegments() and showBeachfront:
     glLineWidth(5)
     colorAL = glGetAttribLocation(shs,'a_color')
     posAL = glGetAttribLocation(shs,'a_position')
@@ -226,7 +228,7 @@ def draw():
   shs = line_shaders
   glUseProgram(shs)
   glEnable(GL_LINE_SMOOTH)
-  if V.scanning and not V.scanFinished():
+  if V.scanning and showBeachfront and not V.scanFinished():
     glLineWidth(5)
     colorAL = glGetAttribLocation(shs,'a_color')
     posAL = glGetAttribLocation(shs,'a_position')
@@ -274,6 +276,7 @@ def draw():
   # * * * * * * * * * * * * * * * *
   # Draw voronoi edges
   if V.scanFinished():
+    V.outputVoronoi()
     shs = line_shaders
     glUseProgram(shs)
     glLineWidth(3)
@@ -328,7 +331,7 @@ def draw():
 
 def keypress(key, x, y):
   """ Handle a "normal" keypress. """
-  global V, control, showCircles, showDelaunay
+  global V, control, showCircles, showDelaunay, showBeachfront
 
   # Handle ESC key.
   if key == b'\033':  
@@ -347,6 +350,10 @@ def keypress(key, x, y):
 
   if key == b'd':
     showDelaunay = not showDelaunay
+    glutPostRedisplay()
+
+  if key == b'b':
+    showBeachfront = not showBeachfront
     glutPostRedisplay()
 
 
@@ -562,6 +569,9 @@ def main():
   print()
   print('Press SPACE to start the scanline')
   print('Click to add points')
+  print('\'b\' to hide the beachfront')
+  print('\'c\' to hide circle events')
+  print('\'d\' to hide delaunay triangulation')
   print('Press ESC to quit.')
   print()
 

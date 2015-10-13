@@ -288,6 +288,7 @@ class Voronoi:
       #   self.processEvent()
       if len(self.event_pq) == 0:
         self.scanline.y = -1.0
+        self.edgeDCEL.finish()
 
       elif self.event_pq[-1].dist2scan <= math.fabs(self.scanline.dy/2):
         self.processEvent()
