@@ -409,7 +409,7 @@ def update_scanline_buffers():
 
 def update_beachline_buffers():
   global beachfront_buffer, beachfront_color_buffer
-  beachfront_array, color_array = V.beachline.toBuffer()
+  beachfront_array, color_array = V.beachfrontToBuffer()
 
   beachfront_buffer = glGenBuffers(1)
   glBindBuffer(GL_ARRAY_BUFFER, beachfront_buffer)
