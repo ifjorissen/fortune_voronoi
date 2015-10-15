@@ -349,7 +349,7 @@ class BeachODBLL:
             #   print(ptr.breakl)
             #   ptr.breakl = min(ptr.breakl, breakl)
             # print("FIRST NODE ptr.breakl {} breakr {} ptr.next.breakl {} bkptsL{} bkptsR{}".format(ptr.breakl, tmp, ptr.next.breakl, bkpts[0], bkpts[1]))
-            # ptr.breakl = min(ptr.breakl, min(bkpts))
+            ptr.breakl = min(ptr.breakl, min(bkpts))
           if ptr.y >= ptr.next.y:
             # oldbreakr = ptr.breakr
             bpt = min(bkpts)
@@ -374,7 +374,7 @@ class BeachODBLL:
           self.update(ptr.next)
         else:
           tmp, ptr.breakr = ptr.beach.inv_arceqn()
-          print("last node breakpoints tmp{} ptr.breakr {}".format(tmp, ptr.breakr))
+          # print("last node breakpoints tmp{} ptr.breakr {}".format(tmp, ptr.breakr))
           return
 
 

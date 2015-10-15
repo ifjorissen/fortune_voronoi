@@ -2,7 +2,7 @@ from geometry import point, vector
 # from math import inf
 from itertools import chain, combinations
 from we import fan
-from math import pi, sqrt, acos, atan, atan2, degrees, cos
+from math import pi, sqrt, acos, atan, atan2, degrees, cos, radians, sin, tan
 
 class Vertex():
   def __init__(self, circle, o):
@@ -101,43 +101,27 @@ class Edge():
     o.edges[(s1, s2)] = self
 
   def angle(self):
-    # dx = self.s2.x-self.s1.x
-    # dy = self.s2.y-self.s1.y
+    ''' given an edge, calculate its angle based on its sites'''
     dx = self.s2.x-self.s1.x
     dy = self.s2.y-self.s1.y
-    # return degrees(atan2(-dx, dy))
-    # return degrees(atan(-dx/dy))
+
     l = sqrt(dx**2 + dy**2)
     if dx > 0:
         return degrees(acos(-dy/l))
     else:
         return degrees(2.0*pi - acos(-dy/l))
-    # l = sqrt(dx**2 + dy**2)
-    # # return cos(-dy/l)
-    # if dx > 0:
-    #   return cos(-dy/l)
-    # else:
-    #   return - cos(-dy/l)
 
   def addSource(self, o, source):
+    '''given and edge and a dcel object, assign a source and update twin'''
     self.source = source
-    # if self.dest is not o.infv:
-    # if o.edges
     self.source.outgoing_edges.append(o.edges[(self.s1, self.s2)])
     if (self.s2, self.s1) in o.edges:
-      # print("add src")
-      # print(self.twin)
-      # self.twin.dest = source
       o.edges[(self.s2, self.s1)] = self.twin
 
-  def toBuffer(self):
-    #draw a line beginning at breakpoint(or the vertex) and going through midpt
-    e1 = [0, 0]
-    e2 = [0, 0]
-    line = list(chain.from_iterable([e1.components(), e2.components()]))
-    color = list(chain.from_iterable([self.c.components(), self.c.components()]))
-    return line, color
+  #TO DO: edge clipping shoudl probably be done here?
 
+
+#To Do: actually create the cells
 class Cell():
   def __init__(self, voronoi_vertex, vertices, o):
     self.edges = []
@@ -146,6 +130,7 @@ class Cell():
 
 class VoronoiDCEL():
   def __init__(self):
+    bounds = {"xmin": -1.0, "xmax": 1.0, "ymin": -1.0, "ymax": 1.0}
     self.infv = None
     self.delaunay = None
     self.vertices = []
@@ -190,8 +175,6 @@ class VoronoiDCEL():
 
   def validateCells(self):
     print("\n----**** validateCells ****----")
-    # self.postProcessEdges()
-    # self.printEdges()
     for vertex in self.vertices:
       if vertex is not self.infv:
         print("\nvertex {} with {} outgoing edges".format(vertex, len(vertex.outgoing_edges)))
@@ -220,6 +203,7 @@ class VoronoiDCEL():
     v = self.addVertex(circle)
 
   def finish(self):
+    print("----**** voronoi finish ****----")
     #create the edge list
     for vertex in self.vertices:
       if vertex is not self.infv:
@@ -237,7 +221,6 @@ class VoronoiDCEL():
           try:
             etwin = self.edges[(edge.s2, edge.s1)]
           except:
-            print("ETWIN DIDN'T EXIST?")
             etwin = Edge(edge.s2, edge.s1, self.infv, self)
           #set edges
           # print("edge.twin {}, etwin {}".format(edge.twin, etwin))
@@ -270,45 +253,92 @@ class VoronoiDCEL():
       else:
         edge.twin.next = self.infv.outgoing_edges[0]
         self.infv.outgoing_edges[0].prev = edge.twin
+    print("----**** done with voronoi finish ****----")
 
   def clipEdge(self, edge):
     '''
     given an edge, return the endpoints (as points, to be drawn by opengl)
     '''
-    if edge.next.source is self.infv:
-      e1 = edge.source.position
-      #make a movement vector 
-      #this is the angle of the vector
-      mp_sites = point((edge.s1.x + edge.s2.x)/2.0, (edge.s1.y + edge.s2.y)/2.0, 0.0)
-      dy = edge.source.position.y - mp_sites.y
-      dx = edge.source.position.x - mp_sites.x
-      v = vector(dx, dy, 0.0)
-      # print()
-      unit_v = v.unit()
-      v2 = unit_v.scale(2.0*sqrt(2.0))
-      negv2 = v2.neg()
-      #now v2 has length 2*2(1/2) (the total length of the longest diagonal)
-      #do a point vector sum
-      e2 = e1.plus(negv2)
-      print("NEXT.SRC INF edge: {} v:{} e1:{} e2: {} mp_sites {}".format(edge, v, e1, e2, mp_sites))
+    if edge.next.source is self.infv or edge.source is self.infv:
+      ur_br = self.bounds["ymax"]/self.bounds["xmax"]
+      ul_br = self.bounds["ymax"]/self.bounds["xmin"]
+      br_br = self.bounds["ymin"]/self.bounds["xmax"]
+      bl_br = self.bounds["ymin"]/self.bounds["xmin"]
+
+      if edge.next.source is self.infv:
+        #construct a unit vector according to edge angle
+        angle = edge.angle
+        e1 = edge.source.position
+        # v = vector(cos(radians(angle)), sin(radians(angle)), 0.0)
+        # tan = tan(radians(angle))
+
+      else:
+        angle = edge.twin.angle
+        e1 = edge.next.source.position
+      
+      v = vector(cos(radians(angle)), sin(radians(angle)), 0.0)
+      t = tan(radians(angle))
+
+      #to do: scale each edge according to boundaries
+      #interim solution: make sure the vector is long enough to cover the longest diagonal
+      dx = self.bounds["xmax"] - self.bounds["xmin"]
+      dy = self.bounds["ymax"] - self.bounds["ymin"]
+      e_scale = sqrt(dx**2 + dy**2)
+
+      v2 = v.scale(e_scale)
+      # v2 = v.scale(2.0*sqrt(2.0))
+      e2 = e1.plus(v2)
+      print("SRC INF edge: {} v:{} e1:{} e2: {}".format(edge, v, e1, e2))
       return e1, e2
-    elif edge.source is self.infv:
-      e1 = edge.next.source.position
-      #make a movement vector 
-      #this is the angle of the vector
-      mp_sites = point((edge.s1.x + edge.s2.x)/2.0, (edge.s1.y + edge.s2.y)/2.0, 0.0)
-      dy = edge.next.source.position.y - mp_sites.y
-      dx = edge.next.source.position.x - mp_sites.x
-      v = vector(dx, dy, 0.0)
-      # print()
-      unit_v = v.unit()
-      v2 = unit_v.scale(2.0*sqrt(2.0))
-      negv2 = v2.neg()
-      #now v2 has length 2*2(1/2) (the total length of the longest diagonal)
-      #do a point vector sum
-      e2 = e1.plus(negv2)
-      print("SRC INF edge: {} v:{} e1:{} e2: {} mp_sites {}".format(edge, v, e1, e2, mp_sites))
-      return e1, e2
+
+
+        #   else:
+        # e1 = edge.next.source.position
+        # v = vector(cos(radians(edge.twin.angle)), sin(radians(edge.twin.angle)), 0.0)
+        # v2 = v.scale(2.0*sqrt(2.0))
+        # e2 = e1.plus(v2)
+        # print("SRC INF edge: {} v:{} e1:{} e2: {}".format(edge, v, e1, e2)
+        # return e1, e2
+
+        # v2 = v.scale(2.0*sqrt(2.0))
+        # e2 = e1.plus(v2)
+        # print("SRC INF edge: {} v:{} e1:{} e2: {}".format(edge, v, e1, e2)
+        # return e1, e2
+
+    # if edge.next.source is self.infv:
+    #   e1 = edge.source.position
+    #   #make a movement vector 
+    #   #this is the angle of the vector
+    #   mp_sites = point((edge.s1.x + edge.s2.x)/2.0, (edge.s1.y + edge.s2.y)/2.0, 0.0)
+    #   dy = edge.source.position.y - mp_sites.y
+    #   dx = edge.source.position.x - mp_sites.x
+    #   v = vector(dx, dy, 0.0)
+    #   # print()
+    #   unit_v = v.unit()
+    #   v2 = unit_v.scale(2.0*sqrt(2.0))
+    #   negv2 = v2.neg()
+    #   #now v2 has length 2*2(1/2) (the total length of the longest diagonal)
+    #   #do a point vector sum
+    #   e2 = e1.plus(negv2)
+    #   print("NEXT.SRC INF edge: {} v:{} e1:{} e2: {} mp_sites {}".format(edge, v, e1, e2, mp_sites))
+    #   return e1, e2
+    # elif edge.source is self.infv:
+    #   e1 = edge.next.source.position
+    #   #make a movement vector 
+    #   #this is the angle of the vector
+    #   mp_sites = point((edge.s1.x + edge.s2.x)/2.0, (edge.s1.y + edge.s2.y)/2.0, 0.0)
+    #   dy = edge.next.source.position.y - mp_sites.y
+    #   dx = edge.next.source.position.x - mp_sites.x
+    #   v = vector(dx, dy, 0.0)
+    #   # print()
+    #   unit_v = v.unit()
+    #   v2 = unit_v.scale(2.0*sqrt(2.0))
+    #   negv2 = v2.neg()
+    #   #now v2 has length 2*2(1/2) (the total length of the longest diagonal)
+    #   #do a point vector sum
+    #   e2 = e1.plus(negv2)
+    #   print("SRC INF edge: {} v:{} e1:{} e2: {} mp_sites {}".format(edge, v, e1, e2, mp_sites))
+    #   return e1, e2
     else:
       print("NORMAL edge: {} e1:{} e2: {}".format(edge, edge.source.position, edge.next.source.position))
       return edge.source.position, edge.next.source.position

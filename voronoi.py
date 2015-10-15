@@ -77,6 +77,7 @@ class Voronoi:
     self.bounds = {"xmin": site_xmin, "xmax": site_xmax, "ymin": site_ymin, "ymax": site_ymax}
     print("Bounds: xmin: {} xmax: {} ymin: {} ymax: {}".format(site_xmin, site_xmax, site_ymin, site_ymax))
     Beach.bounds = self.bounds
+    VoronoiDCEL.bounds = self.bounds
     self.createScanline()
     print("\n----**** done with voronoi read ****----")
 
@@ -174,6 +175,7 @@ class Voronoi:
     e1 = point(self.bounds["xmin"], self.bounds["ymax"], 0.0)
     e2 = point(self.bounds["xmax"], self.bounds["ymax"], 0.0)
     self.scanline = Scanline(e1, e2)
+    VoronoiDCEL.bounds = self.bounds
     print(self.scanline.e1)
     print(self.scanline.e2)
 
