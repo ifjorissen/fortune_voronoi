@@ -1,12 +1,12 @@
 import logging
-logger = logging.getLogger(__name__)
-logging.basicConfig(filename='logging/dcel.log',level=logging.DEBUG)
-logging.basicConfig(filename='logging/errors.log',level=logging.ERROR)
+import logging.config
 
-from geometry import point, vector
+log = logging.getLogger('dcel')
+
+from ..geom.geometry import point, vector
+from .we import fan
 # from math import inf
 from itertools import chain, combinations
-from we import fan
 from math import pi, sqrt, acos, atan, atan2, degrees, cos, radians, sin, tan
 
 class Vertex():
@@ -77,8 +77,8 @@ class Edge():
     self.angle = self.angle()
 
     if (s1, s2) in o.edges:
-      logging.debug("Bad Edge Orientation for {} src: {}".format(self, self.source))
-      logging.debug("REPLACE: This edge already existed there: {} src:{}".format(o.edges[(s1, s2)], o.edges[(s1, s2)].source))
+      log.debug("Bad Edge Orientation for {} src: {}".format(self, self.source))
+      log.debug("REPLACE: This edge already existed there: {} src:{}".format(o.edges[(s1, s2)], o.edges[(s1, s2)].source))
 
     if self.source is not None:
       self.source.outgoing_edges.append(self)
@@ -103,7 +103,7 @@ class Edge():
 
   def addSource(self, o, source):
     '''given and edge and a dcel object, assign a source and update twin'''
-    logging.debug("Updated source of {} with source {}".format(self, source))
+    log.debug("Updated source of {} with source {}".format(self, source))
     self.source = source
     self.source.outgoing_edges.append(o.edges[(self.s1, self.s2)])
     if (self.s2, self.s1) in o.edges:
@@ -146,9 +146,44 @@ class VoronoiDCEL():
     e2 = Edge(s2, s3, v, self)
     e3 = Edge(s3, s1, v, self)
 
-    logging.debug("Added outgoing edges for vertex {}. e1: {} e2: {} e3:{}".format(v, e1, e2, e3))
-
+    log.debug("Added outgoing edges for vertex {}. e1: {} e2: {} e3:{}".format(v, e1, e2, e3))
     return [e1, e2, e3]
+
+  def clipEdge(self, edge):
+    '''
+    given an edge, return the endpoints (as points, to be drawn by opengl)
+    '''
+    if edge.next.source is self.infv or edge.source is self.infv:
+      #construct a unit vector according to edge angle
+      if edge.next.source is self.infv:
+        angle = edge.angle
+        e1 = edge.source.position
+
+      else:
+        angle = edge.twin.angle
+        e1 = edge.next.source.position
+      
+      v = vector(cos(radians(angle)), sin(radians(angle)), 0.0)
+      t = tan(radians(angle))
+
+      #to do: scale each edge according to boundaries
+      #interim solution: make sure the vector is long enough to cover the longest diagonal
+      dx = self.bounds["xmax"] - self.bounds["xmin"]
+      dy = self.bounds["ymax"] - self.bounds["ymin"]
+      e_scale = sqrt(dx**2 + dy**2)
+
+      #scale the vector and assign endpoints
+      v2 = v.scale(e_scale)
+      e2 = e1.plus(v2)
+
+    else:
+      e1 = edge.source.position
+      e2 = edge.next.source.position
+
+    edge.e1 = e1
+    edge.e2 = e2
+
+    return e1, e2
 
   def printVertices(self):
     vert_str = "\n----**** printVertices ****----"
@@ -176,6 +211,7 @@ class VoronoiDCEL():
     edge_str = "\n----**** printEdgeGeo ****----"
     # print("\n----**** printEdges ****----")
     for sites, edge in self.edges.items():
+      self.clipEdge(edge)
       # print("edge:{} face: {} src:{} prev: {} next: {} twin: {}".format(edge, edge.face, edge.source, edge.prev, edge.next, edge.twin))
       edge_str += "\n\tedge:{} angle: {} e1:{} e2: {}".format(edge, edge.angle, edge.e1, edge.e2)
     edge_str += "\n----**** done with printEdgeGeo ****----"
@@ -202,7 +238,7 @@ class VoronoiDCEL():
             e = e.next
           if e is None:
             validate_cell_str += "\nRESULT: e is none, following {} from vertex {} did not form a valid cell...".format(edge, vertex)
-            logging.error("\nINVALID CELL: e is none, following {} from vertex {} did not form a valid cell...".format(edge, vertex))
+            log.error("\nINVALID CELL: e is none, following {} from vertex {} did not form a valid cell...".format(edge, vertex))
             # print("RESULT: e is none, vertex {} did not form a valid cell...".format(vertex))
             return False
           elif e.source is vertex:
@@ -211,19 +247,22 @@ class VoronoiDCEL():
             validate_cell_str += "\nRESULT: vertex {} formed a valid cell!\n".format(vertex)
             # print("RESULT: vertex {} formed a valid cell!\n".format(vertex))
           else:
-            logging.error("RESULT: something else really weird on vertex v{}".format(vertex))
+            log.error("RESULT: something else really weird on vertex v{}".format(vertex))
             validate_cell_str += "\nRESULT: something else really weird on vertex v{}".format(vertex)
             return False
             # print("RESULT: something else really weird on vertex v{}".format(vertex))
     validate_cell_str += "\n----**** done with validateCells ****----\n"
-    logging.debug(validate_cell_str)
+    log.debug(validate_cell_str)
     # print("----**** done with validateCells ****----\n")
     return True
 
   def handleCircle(self, circle):
     #add a vertex
     v = self.addVertex(circle)
-    logging.debug("Handling circle {} added {} to {}.vertices".format(circle, v, self))
+    log.debug("Handling circle {} added {} to {}.vertices".format(circle, v, self))
+
+  def createCells(self):
+    pass
 
   def finish(self):
     finish_str = "\n----**** voronoi finish ****----"
@@ -242,6 +281,12 @@ class VoronoiDCEL():
             etwin = self.edges[(edge.s2, edge.s1)]
           except:
             etwin = Edge(edge.s2, edge.s1, self.infv, self)
+          # print(edge)
+          # print(edge.twin)
+          # print(etwin)
+          # print(etwin.twin)
+          # edge.twin = etwin
+          # etwin.twin = edge
           #set edges prev and next
           if i < len(vertex.outgoing_edges)-1:
             etwin.next = vertex.outgoing_edges[i+1]
@@ -271,48 +316,10 @@ class VoronoiDCEL():
       finish_str += "\n\tRESULT for {} vertex {}: edge: {} edge.twin {} edge.twin.next{} edge.twin.prev: {}".format(i, vertex, edge, edge.twin, edge.twin.next, edge.twin.prev)
     # print("----**** done with voronoi finish ****----")
     finish_str += "\n----**** done with voronoi finish ****----"
-    logging.debug(finish_str)
+    log.debug(finish_str)
+
+    self.createCells()
     return finish_str
-
-  def clipEdge(self, edge):
-    '''
-    given an edge, return the endpoints (as points, to be drawn by opengl)
-    '''
-    if edge.next.source is self.infv or edge.source is self.infv:
-      # ur_br = self.bounds["ymax"]/self.bounds["xmax"]
-      # ul_br = self.bounds["ymax"]/self.bounds["xmin"]
-      # br_br = self.bounds["ymin"]/self.bounds["xmax"]
-      # bl_br = self.bounds["ymin"]/self.bounds["xmin"]
-
-      #construct a unit vector according to edge angle
-      if edge.next.source is self.infv:
-        angle = edge.angle
-        e1 = edge.source.position
-
-      else:
-        angle = edge.twin.angle
-        e1 = edge.next.source.position
-      
-      v = vector(cos(radians(angle)), sin(radians(angle)), 0.0)
-      t = tan(radians(angle))
-
-      #to do: scale each edge according to boundaries
-      #interim solution: make sure the vector is long enough to cover the longest diagonal
-      dx = self.bounds["xmax"] - self.bounds["xmin"]
-      dy = self.bounds["ymax"] - self.bounds["ymin"]
-      e_scale = sqrt(dx**2 + dy**2)
-
-      #scale the vector and assign endpoints
-      v2 = v.scale(e_scale)
-      e2 = e1.plus(v2)
-      edge.e1 = e1
-      edge.e2 = e2
-      # print("SRC INF edge: {} v:{} e1:{} e2: {}".format(edge, v, e1, e2))
-      return e1, e2
-
-    else:
-      # print("NORMAL edge: {} e1:{} e2: {}".format(edge, edge.source.position, edge.next.source.position))
-      return edge.source.position, edge.next.source.position
 
   def edgesToBuffer(self):
     #return the edge buffer

@@ -1,4 +1,4 @@
-from voronoi import Voronoi
+from voronoi.voronoi import Voronoi
 
 def main():
   v = Voronoi(view=False)

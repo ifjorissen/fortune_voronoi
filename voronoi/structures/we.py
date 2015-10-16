@@ -24,8 +24,8 @@
 #   face: a triangular face on a surface of the object.  It has 
 #         three border half-edges.  
 
-from constants import *
-from geometry import vector, point, ORIGIN
+# from ..geom.constants import *
+from ..geom.geometry import vector, point, ORIGIN
 from math import sqrt,cos,pi
 import sys
 
