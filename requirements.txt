@@ -1,0 +1,6 @@
+PyOpenGL==3.1.0
+PyOpenGL-accelerate==3.1.0
+memory-profiler==0.36
+numpy==1.10.0.post2
+objgraph==2.0.1
+psutil==3.2.2

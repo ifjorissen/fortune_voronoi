@@ -2,6 +2,8 @@ import math
 from circle import Circle, InvalidCircle, NotEmptyCircle, CircleAlreadyCreated
 
 class Beach:
+  #default bounds if we're using the opengl simulation
+  bounds = {"xmin": -1.0, "xmax": 1.0, "ymin": -1.0, "ymax": 1.0}
   def __init__(self, site, scanline):
     self.directrix = scanline
     self.focus = site
@@ -23,7 +25,10 @@ class Beach:
     try:
       x2 = ((math.sqrt((-b*c+b*j+c*c - c*j)*(a*a - 2.0*a*h + b*b - 2.0*b*j + h*h + j*j))) + a*c-a*j + b*h - c*h)/(b-j)
     except:
-      x2 = min(a, h)
+      if x1 < a:
+        x2 = max(a, h)
+      else:
+        x2 = min(a, h)
 
     if x1 > x2:
       return [x2, x1]
@@ -47,8 +52,9 @@ class Beach:
 
     return y
 
-  def inv_arceqn(self, y=1.0):
+  def inv_arceqn(self):
     # y = y
+    y = self.bounds["ymax"]
     a = self.focus.x
     b = self.focus.y
     c = self.directrix.y
@@ -71,7 +77,7 @@ class Beach:
 
     if self.focus.y >= self.directrix.y:
       i = bl
-      while i <= br:
+      while i < br:
         y = self.arceqn(i)
         cBuf.extend(c.components()) 
         arcBuf.extend([i, y, 0.0])
@@ -229,29 +235,30 @@ class BeachODBLL:
             bn.breakl = bn.x
             bn.breakr = bn.x
 
-            pl, pr = ptr.beach.inv_arceqn()
-            rbn = BeachNode(ptr.beach, bn, ptr.next, bn.breakr, ptr.breakr)
-            if ptr.next:
-              rbn.next.prev = rbn
-            bn.next = rbn
-            ptr.breakr = bn.breakl
-            bn.prev = ptr
-            ptr.next = bn
-
-            #make a new node to the right if we need to
-            # pl, pr = ptr.beach.inv_arceqn()
-            # if bn.x > pl or bn.x < pr:
-            #   rbn = BeachNode(ptr.beach, bn, ptr.next, bn.breakr, ptr.breakr)
-            #   if ptr.next:
-            #     rbn.next.prev = rbn
-            #   bn.next = rbn
-
-            # else:
-            #   bn.next = ptr.next
-
+            # rbn = BeachNode(ptr.beach, bn, ptr.next, bn.breakr, ptr.breakr)
+            # if ptr.next:
+            #   rbn.next.prev = rbn
+            # bn.next = rbn
             # ptr.breakr = bn.breakl
             # bn.prev = ptr
             # ptr.next = bn
+
+            #make a new node to the right if we need to
+            pl, pr = ptr.beach.inv_arceqn()
+            if bn.x > pl or bn.x < pr:
+              rbn = BeachNode(ptr.beach, bn, ptr.next, bn.breakr, pr)
+              if ptr.next:
+                rbn.next.prev = rbn
+                rbn.breakr = rbn.next.breakl
+              bn.next = rbn
+
+            else:
+              bn.next = ptr.next
+
+            ptr.breakr = bn.breakl
+            bn.breakr = bn.next.breakl
+            bn.prev = ptr
+            ptr.next = bn
 
 
             #add circle events
@@ -335,31 +342,39 @@ class BeachODBLL:
       else:
       #update right breakpoint of ptr and left bkpt of ptr.next
         if ptr.next is not None:
+          bkpts = ptr.beach.intersect(ptr.next.beach)
           if ptr.prev is None:
             ptr.breakl, tmp = ptr.beach.inv_arceqn()
-            # if(ptr.breakr < ptr.breakl) or (ptr.breakr == ptr.breakl == 1.0) or (ptr.breakr == ptr.breakl == -1.0):
-            #   self.remove(ptr)
-          bkpts = ptr.beach.intersect(ptr.next.beach)
+            # if breakl == ptr.x:
+            #   print(ptr.breakl)
+            #   ptr.breakl = min(ptr.breakl, breakl)
+            # print("FIRST NODE ptr.breakl {} breakr {} ptr.next.breakl {} bkptsL{} bkptsR{}".format(ptr.breakl, tmp, ptr.next.breakl, bkpts[0], bkpts[1]))
+            ptr.breakl = min(ptr.breakl, min(bkpts))
           if ptr.y >= ptr.next.y:
+            # oldbreakr = ptr.breakr
             bpt = min(bkpts)
-            ptr.breakr = bpt
-            ptr.next.breakl = bpt
+            if bpt is not ptr.x:
+              ptr.breakr = bpt
+              ptr.next.breakl = bpt
           else:
             bpt = max(bkpts)
-            ptr.breakr = bpt
-            ptr.next.breakl = bpt
+            if bpt is not ptr.x:
+              ptr.breakr = bpt
+              ptr.next.breakl = bpt
 
-          # if(ptr.breakr < ptr.breakl) or (ptr.breakr == ptr.breakl == 1.0) or (ptr.breakr == ptr.breakl == -1.0):
-          if(ptr.breakr < ptr.breakl):
-            print("should remove: bn {} ptr.x {} bl:{} br:{}".format(ptr, ptr.x, ptr.breakl, ptr.breakr))
+          if (ptr.breakr < ptr.breakl):
+            if (ptr.breakl > ptr.beach.bounds["xmin"]) and (ptr.breakr > ptr.beach.bounds["xmin"]):
+              print("URGENT: should remove: bn {} ptr.x {} bl:{} br:{}".format(ptr, ptr.x, ptr.breakl, ptr.breakr))
+            else:
+              print("OUT OF BOUNDS: should remove: bn {} ptr.x {} bl:{} br:{}".format(ptr, ptr.x, ptr.breakl, ptr.breakr))
             self.printDBL()
-            self.remove(ptr)
+            # self.remove(ptr)
+            # self.printDBL()
             # pass
           self.update(ptr.next)
         else:
           tmp, ptr.breakr = ptr.beach.inv_arceqn()
-          # if(ptr.breakr < ptr.breakl) or (ptr.breakr == ptr.breakl == 1.0) or (ptr.breakr == ptr.breakl == -1.0):
-            # self.remove(ptr)
+          # print("last node breakpoints tmp{} ptr.breakr {}".format(tmp, ptr.breakr))
           return
 
 
@@ -404,6 +419,9 @@ class BeachODBLL:
           return arcs[mindist]
       else:
         cur = cur.next
+
+  def getHead(self):
+    return self.head
 
   def toBuffer(self):
     self.update(self.head)
