@@ -82,10 +82,13 @@ class Beach:
 
     if self.focus.y >= self.directrix.y:
       i = bl
-      while i < br:
-        y = self.arceqn(i)
-        cBuf.extend(c.components()) 
-        arcBuf.extend([i, y, 0.0])
+      while i <= br:
+        try:
+          y = self.arceqn(i)
+          cBuf.extend(c.components()) 
+          arcBuf.extend([i, y, 0.0])
+        except:
+          pass
         i += .005
     return arcBuf, cBuf
 

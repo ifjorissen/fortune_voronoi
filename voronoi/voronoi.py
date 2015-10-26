@@ -95,24 +95,19 @@ class Voronoi:
     vertices = self.edgeDCEL.printVertices()
     edgeLinks = self.edgeDCEL.printEdgeLinks()
     edgeGeo = self.edgeDCEL.printEdgeGeo()
-    # cells = self.edgeDCEL.printCells()
+    cells = self.edgeDCEL.printCells()
     f.write("\n----**** voronoi results ****----")
-    f.write("\n\tThere are {} sites, {} vertices, {} edges\n".format(len(self.sites), len(self.vvertices), len(self.edgeDCEL.edges.items())/2.0))
+    f.write("\n\tThere are {} sites, {} vertices, {} edges\n".format(len(self.sites), len(self.vvertices) + 1, len(self.edgeDCEL.edges.items())/2.0))
     f.write("\n\tDiagram Bounds: xmin: {} xmax: {} ymin: {} ymax: {}".format(self.bounds["xmin"], self.bounds["xmax"], self.bounds["ymin"], self.bounds["ymax"]))
     f.write(vertices)
     f.write(edgeLinks)
     f.write(edgeGeo)
-    # f.write(cells)
+    f.write(cells)
     f.write("\n----**** done outputting voronoi results ****----\n")
-
-
-
-  # def edgesToBuffer(self):
-  #   #show the edges as they are being traced out
-  #   pass
 
   def edgesToBuffer(self):
     #reveal the computed diagram
+    print("ebuf")
     edges, cBuf = self.edgeDCEL.edgesToBuffer()
     return edges, cBuf
 
