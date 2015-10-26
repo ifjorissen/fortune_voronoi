@@ -43,7 +43,7 @@ class quat:
     def for_rotation(cls, angle, around):
         """ Constructs a new quat instance corresponding to a rotation of
           3-space by an amount in radians given by angle.  The axis
-          of rotation is given by the vector given by around.  
+          of rotation is given by the vector given by around.
         """
         half_angle = angle / 2.0
         axis = around.unit()
@@ -55,7 +55,7 @@ class quat:
 
     def as_rotation(self):
         """ The rotation represented by self, given as an angle around
-          an vector serving as the Euler axis of rotation. 
+          an vector serving as the Euler axis of rotation.
         """
         qs = self.unit().components()
         half_theta = acos(qs[0])
@@ -91,8 +91,17 @@ class quat:
 
     def times(self, other):
         """ Computes the product of two quat objects, self and other. """
-        return quat(self.re * other.re - self.iv.dot(other.iv),
-                    other.iv * self.re + self.iv * other.re + self.iv.cross(other.iv))
+        return quat(
+            self.re *
+            other.re -
+            self.iv.dot(
+                other.iv),
+            other.iv *
+            self.re +
+            self.iv *
+            other.re +
+            self.iv.cross(
+                other.iv))
 
     def div(self, other):
         """ Computes the qivision of self by other. """

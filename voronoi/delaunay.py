@@ -28,7 +28,7 @@ class fan_face:
     #
     def __next__(self):
 
-        if self.which == None:
+        if self.which is None:
             # If we've exhausted the edges that form the fan, stop.
             raise StopIteration
         else:
@@ -38,7 +38,7 @@ class fan_face:
             # ...and advance to the next edge.
 
             # To advance, make sure that we're not the whole way around...
-            if current.next.next.twin != None and \
+            if current.next.next.twin is not None and \
                current.next.next.twin != self.vertex.edge:
 
                 # ...and, if not, advance to the next fan edge.

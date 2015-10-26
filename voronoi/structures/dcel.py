@@ -62,8 +62,11 @@ class Edge():
         if (s1, s2) in o.edges:
             log.debug("Bad Edge Orientation for {} src: {}".format(
                 self, self.source))
-            log.debug("REPLACE: This edge already existed there: {} src:{}".format(
-                o.edges[(s1, s2)], o.edges[(s1, s2)].source))
+            log.debug(
+                "REPLACE: This edge already existed there: {} src:{}".format(
+                    o.edges[
+                        (s1, s2)], o.edges[
+                        (s1, s2)].source))
 
         # update outgoing edges
         if self.source is not None:
@@ -207,8 +210,12 @@ class VoronoiDCEL():
         e2 = Edge(s2, s3, v, self)
         e3 = Edge(s3, s1, v, self)
 
-        log.debug("Added outgoing edges for vertex {}. e1: {} e2: {} e3:{}".format(
-            v, e1, e2, e3))
+        log.debug(
+            "Added outgoing edges for vertex {}. e1: {} e2: {} e3:{}".format(
+                v,
+                e1,
+                e2,
+                e3))
         return [e1, e2, e3]
 
     def clipEdge(self, edge):
@@ -315,8 +322,9 @@ class VoronoiDCEL():
                     if e is None:
                         validate_cell_str += "\nRESULT: e is none, following {} from vertex {} did not form a valid cell...".format(
                             edge, vertex)
-                        log.error("\nINVALID CELL: e is none, following {} from vertex {} did not form a valid cell...".format(
-                            edge, vertex))
+                        log.error(
+                            "\nINVALID CELL: e is none, following {} from vertex {} did not form a valid cell...".format(
+                                edge, vertex))
                         return False
                     elif e.source is vertex:
                         validate_cell_str += "\n\tedge: {} Cell:{} source: {} twin: {}: next: {}".format(
@@ -405,7 +413,7 @@ class VoronoiDCEL():
         edges = []
         colors = []
         color1 = vector(0, 0, 1.0)
-        color2 = vector(0,  1.0, 0)
+        color2 = vector(0, 1.0, 0)
         color3 = vector(1.0, 0, 0)
         for edge in self.edges.values():
             edges.extend(edge.e1.components())

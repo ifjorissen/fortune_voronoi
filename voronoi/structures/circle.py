@@ -18,7 +18,8 @@ class NotEmptyCircle(Exception):
         self.included = included
 
     def __str__(self):
-        return repr([str(site) for site in self.sites]) + " " + repr([str(site) for site in self.included])
+        return repr([str(site) for site in self.sites]) + " " + \
+            repr([str(site) for site in self.included])
 
 
 class CircleAlreadyCreated(Exception):
@@ -113,7 +114,8 @@ class Circle:
             self.y = self.low.y
 
     def __str__(self):
-        return "cx:{}, cy:{}, clow:{}".format(self.c.x, self.c.y, self.csites(), self.low)
+        return "cx:{}, cy:{}, clow:{}".format(
+            self.c.x, self.c.y, self.csites(), self.low)
 
     def toBuffer(self):
         buf = []

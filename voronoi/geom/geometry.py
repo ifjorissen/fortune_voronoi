@@ -50,7 +50,10 @@ class point:
 
     def plus(self, offset):
         """ Computes a point-vector sum, yielding a new point. """
-        return point(self.x + offset.dx, self.y + offset.dy, self.z + offset.dz)
+        return point(
+            self.x + offset.dx,
+            self.y + offset.dy,
+            self.z + offset.dz)
 
     def minus(self, other):
         """ Computes point-point subtraction, yielding a vector. """
@@ -76,10 +79,12 @@ class point:
         return P
 
     def max(self, other):
-        return point(max(self.x, other.x), max(self.y, other.y), max(self.z, other.z))
+        return point(max(self.x, other.x), max(
+            self.y, other.y), max(self.z, other.z))
 
     def min(self, other):
-        return point(min(self.x, other.x), min(self.y, other.y), min(self.z, other.z))
+        return point(min(self.x, other.x), min(
+            self.y, other.y), min(self.z, other.z))
 
     #
     # Special methods, hooks into Python syntax.
@@ -138,7 +143,10 @@ class vector:
 
     def plus(self, other):
         """ Sum of self and other. """
-        return vector(self.dx + other.dx, self.dy + other.dy, self.dz + other.dz)
+        return vector(
+            self.dx + other.dx,
+            self.dy + other.dy,
+            self.dz + other.dz)
 
     def minus(self, other):
         """ Vector that results from subtracting other from self. """

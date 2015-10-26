@@ -25,13 +25,13 @@ class Beach:
         j = beach.focus.y
 
         try:
-            x1 = ((-1.0) * (sqrt((-b * c + b * j + c * c - c * j) * (a * a - 2.0 * a * h +
-                                                                     b * b - 2 * b * j + h * h + j * j))) + a * c - a * j + b * h - c * h) / (b - j)
+            x1 = ((-1.0) * (sqrt((-b * c + b * j + c * c - c * j) * (a * a - 2.0 * a * h + \
+                  b * b - 2 * b * j + h * h + j * j))) + a * c - a * j + b * h - c * h) / (b - j)
         except:
             x1 = min(a, h)
         try:
-            x2 = ((sqrt((-b * c + b * j + c * c - c * j) * (a * a - 2.0 * a * h + b *
-                                                            b - 2.0 * b * j + h * h + j * j))) + a * c - a * j + b * h - c * h) / (b - j)
+            x2 = ((sqrt((-b * c + b * j + c * c - c * j) * (a * a - 2.0 * a * h + b * \
+                  b - 2.0 * b * j + h * h + j * j))) + a * c - a * j + b * h - c * h) / (b - j)
         except:
             if x1 < a:
                 x2 = max(a, h)
@@ -210,7 +210,8 @@ class BeachODBLL:
             logger.error("CIRCLE ERROR: Not a valid circle {}".format(str(IC)))
         except NotEmptyCircle as NEC:
             logger.error(
-                "CIRCLE ERROR: Not an empty circle sites included {}".format(str(NEC)))
+                "CIRCLE ERROR: Not an empty circle sites included {}".format(
+                    str(NEC)))
         except CircleAlreadyCreated as CAC:
             logger.error(
                 "CIRCLE ERROR: Circle already created {}".format(str(CAC)))
@@ -244,7 +245,8 @@ class BeachODBLL:
                 # site is to the right of the left breakpoint and left of right
                 # breakpoint
                 if (ptr.breakl <= bn.x):
-                    if (ptr.next is not None and (ptr.next.breakl > bn.x)) or isinf(ptr.breakr):
+                    if (ptr.next is not None and (
+                            ptr.next.breakl > bn.x)) or isinf(ptr.breakr):
                         insert_str += "\n\tthis is the node {}, bl = {}, br={} and  new site {}".format(
                             ptr.x, ptr.breakl, ptr.breakr, bn.x)
                         bn.breakl, bn.breakr = ptr.beach.intersect(bn.beach)
@@ -299,8 +301,9 @@ class BeachODBLL:
                     print("uh oh")
 
     def remove(self, ptr):
-        logger.debug("\nREMOVE ARC: \n\tremoving arc bn{} @(x{} y{}) with bl {} br {}".format(
-            ptr, ptr.x, ptr.y, ptr.breakl, ptr.breakr))
+        logger.debug(
+            "\nREMOVE ARC: \n\tremoving arc bn{} @(x{} y{}) with bl {} br {}".format(
+                ptr, ptr.x, ptr.y, ptr.breakl, ptr.breakr))
         self.printDBL()
         circle_events = []
         cur = self.head
@@ -353,12 +356,15 @@ class BeachODBLL:
                         ptr.next.breakl = bpt
 
                 if (ptr.breakr < ptr.breakl):
-                    if (ptr.breakl > ptr.beach.bounds["xmin"]) and (ptr.breakr > ptr.beach.bounds["xmin"]):
-                        logger.error("\nUPDATE ERROR: \n\tURGENT: should remove: bn {} ptr.x {} bl:{} br:{}".format(
-                            ptr, ptr.x, ptr.breakl, ptr.breakr))
+                    if (ptr.breakl > ptr.beach.bounds["xmin"]) and (
+                            ptr.breakr > ptr.beach.bounds["xmin"]):
+                        logger.error(
+                            "\nUPDATE ERROR: \n\tURGENT: should remove: bn {} ptr.x {} bl:{} br:{}".format(
+                                ptr, ptr.x, ptr.breakl, ptr.breakr))
                     else:
-                        logger.warning("\nUPDATE WARNING: \n\tOUT OF BOUNDS: should remove: bn {} ptr.x {} bl:{} br:{}".format(
-                            ptr, ptr.x, ptr.breakl, ptr.breakr))
+                        logger.warning(
+                            "\nUPDATE WARNING: \n\tOUT OF BOUNDS: should remove: bn {} ptr.x {} bl:{} br:{}".format(
+                                ptr, ptr.x, ptr.breakl, ptr.breakr))
                     self.printDBL()
                 self.update(ptr.next)
             else:
@@ -369,7 +375,15 @@ class BeachODBLL:
         cur = self.head
         while cur is not None:
             if circle.low.x >= cur.breakl and circle.low.x <= cur.breakr:
-                if fabs(fabs(circle.low.x) - fabs(cur.breakl)) > .005 and fabs(fabs(circle.low.x) - fabs(cur.breakr)) > .005:
+                if fabs(
+                    fabs(
+                        circle.low.x) -
+                    fabs(
+                        cur.breakl)) > .005 and fabs(
+                    fabs(
+                        circle.low.x) -
+                    fabs(
+                        cur.breakr)) > .005:
                     return cur
                 else:
                     arcs = {}

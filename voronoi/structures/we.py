@@ -69,7 +69,7 @@ class fan:
     #
     def __next__(self):
 
-        if self.which == None:
+        if self.which is None:
             # If we've exhausted the edges that form the fan, stop.
             raise StopIteration
         else:
@@ -79,7 +79,7 @@ class fan:
             # ...and advance to the next edge.
 
             # To advance, make sure that we're not the whole way around...
-            if current.next.next.twin != None and \
+            if current.next.next.twin is not None and \
                current.next.next.twin != self.vertex.edge:
 
                 # ...and, if not, advance to the next fan edge.
@@ -175,8 +175,8 @@ class vertex:
     #
     def set_first_edge(self):
         e = self.edge
-        while e != None \
-                and e.twin != None \
+        while e is not None \
+                and e.twin is not None \
                 and e != self.edge:
 
             # If not, then we work backwards to the prior edge.
@@ -267,7 +267,8 @@ class edge:
         return self.vector().unit()
 
     def __str__(self):
-        return '<edge ' + str(self.vertex(0).id) + ':' + str(self.vertex(1).id) + '>'
+        return '<edge ' + str(self.vertex(0).id) + ':' + \
+            str(self.vertex(1).id) + '>'
 #
 # class face:
 #
@@ -574,8 +575,9 @@ class object:
             e0 = v.edge
             # case 1: interior edge on boundary
             if e0.twin is None:
-                fvec = [(1 / 2) * (x + y) for x, y in zip(v.position.components(),
-                                                          e0.vertex(1).position.components())]
+                fvec = [(1 / 2) * (x + y) for x,
+                        y in zip(v.position.components(),
+                                 e0.vertex(1).position.components())]
                 v.position = point(fvec[0], fvec[1], fvec[2])
 
             # case 2: split interior edge
@@ -584,10 +586,12 @@ class object:
                 v1 = e1.source
                 f0 = e0.next.next.source
                 f1 = e1.next.next.source
-                fs = [(1 / 8) * (x + y)
-                      for x, y in zip(f1.position.components(), f0.position.components())]
-                vs = [(3 / 8) * (x + y)
-                      for x, y in zip(v.position.components(), v1.position.components())]
+                fs = [(1 / 8) * (x + y) for x,
+                      y in zip(f1.position.components(),
+                               f0.position.components())]
+                vs = [(3 / 8) * (x + y) for x,
+                      y in zip(v.position.components(),
+                               v1.position.components())]
                 fvec = [x + y for x, y in zip(fs, vs)]
                 v.position = point(fvec[0], fvec[1], fvec[2])
 

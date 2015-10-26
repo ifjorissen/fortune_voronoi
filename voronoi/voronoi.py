@@ -96,10 +96,14 @@ class Voronoi:
         edgeGeo = self.edgeDCEL.printEdgeGeo()
         cells = self.edgeDCEL.printCells()
         f.write("\n----**** voronoi results ****----")
-        f.write("\n\tThere are {} sites, {} vertices, {} edges\n".format(
-            len(self.sites), len(self.vvertices) + 1, len(self.edgeDCEL.edges.items()) / 2.0))
-        f.write("\n\tDiagram Bounds: xmin: {} xmax: {} ymin: {} ymax: {}".format(
-            self.bounds["xmin"], self.bounds["xmax"], self.bounds["ymin"], self.bounds["ymax"]))
+        f.write("\n\tThere are {} sites, {} vertices, {} edges\n".format(len(
+            self.sites), len(self.vvertices) + 1, len(self.edgeDCEL.edges.items()) / 2.0))
+        f.write(
+            "\n\tDiagram Bounds: xmin: {} xmax: {} ymin: {} ymax: {}".format(
+                self.bounds["xmin"],
+                self.bounds["xmax"],
+                self.bounds["ymin"],
+                self.bounds["ymax"]))
         f.write(vertices)
         f.write(edgeLinks)
         f.write(edgeGeo)
@@ -217,10 +221,12 @@ class Voronoi:
                 except:
                     if not c.equals(circle):
                         logger.warning(
-                            "WARNING: could not remove c:{} cx:{}".format(c, c.c))
+                            "WARNING: could not remove c:{} cx:{}".format(
+                                c, c.c))
                     else:
                         logger.warning(
-                            "WARNING: circle  c:{} cx:{} was not removed and was circle {}".format(c, c.c, circle))
+                            "WARNING: circle  c:{} cx:{} was not removed and was circle {}".format(
+                                c, c.c, circle))
             self.handled_circles.append(circle)
         logger.debug(process_str)
         # update all the new sites
@@ -241,14 +247,15 @@ class Voronoi:
                 self.edgeDCEL.finish()
 
             elif self.event_pq[-1].dist2scan <= math.fabs(self.scanline.dy / 2):
-                while len(self.event_pq) > 0 and (self.event_pq[-1].dist2scan <= math.fabs(self.scanline.dy / 2)):
+                while len(self.event_pq) > 0 and (
+                        self.event_pq[-1].dist2scan <= math.fabs(self.scanline.dy / 2)):
                     self.processEvent()
 
     def precompute(self):
         '''
             precomputes the voronoi & delaunay digrams without visualization
             instead of doing it on-the-fly as is currently implemented
-            could lead to functions such as showBeach(scanline), 
+            could lead to functions such as showBeach(scanline),
             showCircle(circle) etc, where the events are all precomputed & precise
         '''
         precompute_str = "\n----**** voronoi precompute ****----"

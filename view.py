@@ -3,20 +3,16 @@
 
 
 import sys
-from voronoi.geom.geometry import point, vector, EPSILON, ORIGIN
-from voronoi.geom.quat import quat
-# from we import vertex, edge, face, object
-from random import random
-from math import sin, cos, acos, asin, pi, sqrt
+from voronoi.geom.geometry import point, vector
+from random import random, choice
 from ctypes import *
-import random
 
 from OpenGL.GL import *
 from OpenGL.GLUT import *
 from OpenGL.GLUT.freeglut import *
 from voronoi.voronoi import Voronoi
-from voronoi.delaunay import Delaunay
-import numpy as np
+# from voronoi.delaunay import Delaunay
+# import numpy as np
 
 colors = [
     vector(0.0, .4, 0.9),  # blue
@@ -337,7 +333,7 @@ def mouse(button, state, x, y):
     if not V.scanning:
         ctwpt = screenToWorldCoords(x, y)
         if button == GLUT_LEFT_BUTTON and state == GLUT_DOWN:
-            color = random.choice(colors)
+            color = choice(colors)
             V.addSite(ctwpt, color)
         update_site_buffers()
         glutPostRedisplay()
@@ -372,8 +368,15 @@ def update_scanline_buffers():
 
     scanline_buffer = glGenBuffers(1)
     glBindBuffer(GL_ARRAY_BUFFER, scanline_buffer)
-    glBufferData(GL_ARRAY_BUFFER, len(scanline_array) * 4,
-                 (c_float * len(scanline_array))(*scanline_array), GL_STREAM_DRAW)
+    glBufferData(
+        GL_ARRAY_BUFFER,
+        len(scanline_array) *
+        4,
+        (c_float *
+         len(scanline_array))(
+            *
+            scanline_array),
+        GL_STREAM_DRAW)
 
     scanline_color_buffer = glGenBuffers(1)
     glBindBuffer(GL_ARRAY_BUFFER, scanline_color_buffer)
@@ -387,8 +390,15 @@ def update_beachline_buffers():
 
     beachfront_buffer = glGenBuffers(1)
     glBindBuffer(GL_ARRAY_BUFFER, beachfront_buffer)
-    glBufferData(GL_ARRAY_BUFFER, len(beachfront_array) * 4,
-                 (c_float * len(beachfront_array))(*beachfront_array), GL_STREAM_DRAW)
+    glBufferData(
+        GL_ARRAY_BUFFER,
+        len(beachfront_array) *
+        4,
+        (c_float *
+         len(beachfront_array))(
+            *
+            beachfront_array),
+        GL_STREAM_DRAW)
 
     beachfront_color_buffer = glGenBuffers(1)
     glBindBuffer(GL_ARRAY_BUFFER, beachfront_color_buffer)
@@ -417,8 +427,15 @@ def update_vvertex_buffers():
 
     vvertex_buffer = glGenBuffers(1)
     glBindBuffer(GL_ARRAY_BUFFER, vvertex_buffer)
-    glBufferData(GL_ARRAY_BUFFER, len(vvertex_array) * 4,
-                 (c_float * len(vvertex_array))(*vvertex_array), GL_STATIC_DRAW)
+    glBufferData(
+        GL_ARRAY_BUFFER,
+        len(vvertex_array) *
+        4,
+        (c_float *
+         len(vvertex_array))(
+            *
+            vvertex_array),
+        GL_STATIC_DRAW)
 
     vvertex_color_buffer = glGenBuffers(1)
     glBindBuffer(GL_ARRAY_BUFFER, vvertex_color_buffer)
