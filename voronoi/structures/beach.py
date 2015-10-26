@@ -25,12 +25,12 @@ class Beach:
         j = beach.focus.y
 
         try:
-            x1 = ((-1.0) * (sqrt((-b * c + b * j + c * c - c * j) * (a * a - 2.0 * a * h + \
+            x1 = ((-1.0) * (sqrt((-b * c + b * j + c * c - c * j) * (a * a - 2.0 * a * h +
                   b * b - 2 * b * j + h * h + j * j))) + a * c - a * j + b * h - c * h) / (b - j)
         except:
             x1 = min(a, h)
         try:
-            x2 = ((sqrt((-b * c + b * j + c * c - c * j) * (a * a - 2.0 * a * h + b * \
+            x2 = ((sqrt((-b * c + b * j + c * c - c * j) * (a * a - 2.0 * a * h + b *
                   b - 2.0 * b * j + h * h + j * j))) + a * c - a * j + b * h - c * h) / (b - j)
         except:
             if x1 < a:
@@ -108,7 +108,7 @@ class BeachNode:
         self.prev = left
 
 
-#*** Beachfront ***
+# *** Beachfront ***
 class BeachODBLL:
 
     def __init__(self, head=None, tail=None):
@@ -119,7 +119,6 @@ class BeachODBLL:
         self.to_remove = []
 
     def printDBL(self):
-        pts = []
         ptr = self.head
         ptr_str = ""
         while ptr is not None:
@@ -188,7 +187,6 @@ class BeachODBLL:
 
     def addCircle(self, n1, n2, n3):
         circle_events = []
-        newest = min(n1.y, n2.y, n3.y)
         scanline = n1.beach.directrix
         try:
             circle = Circle(n1.beach.focus, n2.beach.focus, n3.beach.focus)
@@ -275,7 +273,7 @@ class BeachODBLL:
                             circle_events.extend(
                                 self.addCircle(bn.prev.prev, bn.prev, bn))
 
-                        #(we don't need to handle sites to left and right for bn since bn.prev and bn.next are the same arc)
+                        # (we don't need to handle sites to left and right for bn since bn.prev and bn.next are the same arc)
 
                         # two sites to the right of bn
                         if bn.next and bn.next.next:

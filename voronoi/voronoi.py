@@ -1,36 +1,20 @@
+from .geom.geometry import point, vector
+from .structures.scanline import Scanline
+from .structures.v_site import Site
+from .structures.beach import Beach, BeachODBLL
+from .structures.circle import Circle
+from .delaunay import Delaunay
+from .structures.dcel import VoronoiDCEL
+
+from math import fabs
+# from random import choice
 import logging
 import logging.config
 logging.config.fileConfig('logging.conf')
 logger = logging.getLogger('voronoi')
 
-from .geom.geometry import point, vector
-from .structures.scanline import Scanline
-from .structures.v_site import Site
-from .structures.beach import Beach, BeachODBLL
-import math
-from .structures.circle import Circle
-from .delaunay import Delaunay
-from .structures.dcel import VoronoiDCEL
-
-import random
-from itertools import chain
-
 
 class Voronoi:
-    colors = [
-        vector(0.3451, 1.0, 0.5450),
-        vector(1.0, 0.4313, 0.3411),
-        vector(1.0, 0.8862, 0.3725),
-        vector(1.0, 1.0, 0.0),
-        vector(0.0, 1.0, 1.0),
-        vector(1.0, 0.0, 1.0),
-        vector(0.3804, 0.7647, 1.0)
-    ]
-
-    @staticmethod
-    def random_color():
-        return random.choice(colors)
-
     def __init__(self, view=True):
         self.view = view
         self.scanning = False
@@ -246,9 +230,9 @@ class Voronoi:
                 self.scanline.y = -1.0
                 self.edgeDCEL.finish()
 
-            elif self.event_pq[-1].dist2scan <= math.fabs(self.scanline.dy / 2):
+            elif self.event_pq[-1].dist2scan <= fabs(self.scanline.dy / 2):
                 while len(self.event_pq) > 0 and (
-                        self.event_pq[-1].dist2scan <= math.fabs(self.scanline.dy / 2)):
+                        self.event_pq[-1].dist2scan <= fabs(self.scanline.dy / 2)):
                     self.processEvent()
 
     def precompute(self):

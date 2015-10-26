@@ -1,13 +1,9 @@
+from ..geom.geometry import point, vector
+from math import pi, sqrt, acos, degrees, cos, radians, sin, fabs
+
 import logging
 import logging.config
-
 log = logging.getLogger('dcel')
-
-from ..geom.geometry import point, vector
-from .we import fan
-# from math import inf
-from itertools import chain, combinations
-from math import pi, sqrt, acos, atan, atan2, degrees, cos, radians, sin, tan, fabs
 
 
 class Vertex():
@@ -187,15 +183,12 @@ class VoronoiDCEL():
         self.cells = {}
         # create infinite vertex
         if not self.infv:
-            infv = Vertex(None, self)
-        else:
-            infv = self.infv
+            self.infv = Vertex(None, self)
 
     def addCell(self, s1, e):
         '''given a site and a vertex, add it to the Cell'''
         f = Cell(s1, self)
         f.edge = e
-        # f.edges.append(e)
 
     def addVertex(self, circle):
         ''' when a circle event gets handled, add the vertex to the list and create edges'''
@@ -352,7 +345,7 @@ class VoronoiDCEL():
         # create the edge list
         for vertex in self.vertices:
             if vertex is not self.infv:
-                edges = self.addOutgoingEdges(vertex)
+                self.addOutgoingEdges(vertex)
 
         for vertex in self.vertices:
             if vertex is not self.infv:
@@ -412,9 +405,6 @@ class VoronoiDCEL():
         # return the edge buffer
         edges = []
         colors = []
-        color1 = vector(0, 0, 1.0)
-        color2 = vector(0, 1.0, 0)
-        color3 = vector(1.0, 0, 0)
         for edge in self.edges.values():
             edges.extend(edge.e1.components())
             edges.extend(edge.e2.components())

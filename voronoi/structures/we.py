@@ -1,9 +1,4 @@
 #
-# HOMEWORK 5: See the very bottom 'refine' method in this file,
-#             and the description in object-view.py.
-#
-
-#
 # we.py
 #
 # Defines object class called "object" that contains a method for
@@ -26,7 +21,6 @@
 
 # from ..geom.constants import *
 from ..geom.geometry import vector, point, ORIGIN
-from math import sqrt, cos, pi
 import sys
 
 #
@@ -461,7 +455,6 @@ class object:
             max_dims = max_dims.max(V.position)
             min_dims = min_dims.min(V.position)
 
-        span = max_dims - min_dims
         center = point((min_dims.x + max_dims.x) / 2.0,
                        min_dims.y,
                        (min_dims.z + max_dims.z) / 2.0)
@@ -489,110 +482,3 @@ class object:
                 narray.extend(f.vertex(i).normal().components())
                 carray.extend(f.vertex(i).color().components())
         return (varray, narray, carray)
-
-    #
-    # o' = o.refine()
-    # refines an object using Loop's subdivision
-    #
-    def refine(self):
-        selfie = object()
-        vclones = {}
-        vnew = {}
-
-        # create four faces: splitting phase
-        for f in self.face:
-            nvpts = []
-            for edge in f.edges():
-                if edge.source not in vclones:
-                    vclones[edge.source] = vertex(edge.source.position, selfie)
-
-                # make the new vertex
-                nvec = edge.vector().scale(1 / 2)
-                nvpos = edge.source.position.plus(nvec)
-                nv = vertex(nvpos, selfie)
-
-                if edge.twin is not None and edge.twin in vnew:
-                    nvp = vnew[edge.twin]
-                    nvpts.append(nvp)
-                    selfie.vertex.pop()
-
-                # add the vertex introduced at this edge
-                # the edge is the key, the new vertex is the value
-                elif edge.twin not in vnew:
-                    vnew[edge] = nv
-                    nvpts.append(vnew[edge])
-                else:
-                    print("error")
-
-            # create the faces
-            for i in range(0, 3):
-                face(vclones[f.edge(i).source], nvpts[
-                     i], nvpts[(i + 2) % 3], selfie)
-            face(nvpts[0], nvpts[1], nvpts[2], selfie)
-
-        selfie.finish()
-
-        # Debugging
-        # print ("number of faces in self.face: " + str(len(self.face)))
-        # print ("number of faces in selfie.face: " + str(len(selfie.face)))
-        # print ("number of edges in self.edge: " + str(len(self.edge)))
-        # print ("number of edges in selfie.edge: " + str(len(selfie.edge)))
-        # print ("number of vertices in self.vertex: " + str(len(self.vertex)))
-        # print ("number of vertices in selfie.vertex: " + str(len(selfie.vertex)))
-
-        # averaging phase
-        # recompute the position of all of the vertices that were part of the
-        # original shape
-        for v in vclones:
-            sv = vclones[v]
-            ps = [e.vertex(1).position for e in sv.around()]
-            count = len(ps)
-            ss = [1.0 / count] * count
-            centroid = v.position.combos(ss, ps)
-
-            # we're on a cone
-            if sv.edge.twin is not None:
-                bn = 5.0 / 8.0 - (3.0 / 8.0 + 2.0 *
-                                  cos((2.0 * pi) / count) / 8.0) ** 2
-                yn = bn / (1.0 - bn)
-                an = (yn / (1.0 + yn))
-                dn = (1.0 / (1.0 + yn))
-                # sve = sv.position.components()
-                fvec = [x * an + y * dn for x,
-                        y in zip(sv.position.components(), centroid)]
-                sv.position = point(fvec[0], fvec[1], fvec[2])
-
-            # otherwise, we're on a fan
-            else:
-                vn1 = cur.source.position.minus(ORIGIN).scale(1 / 8)
-                v0 = sv.edge.vertex(1).position.minus(ORIGIN).scale(1 / 8)
-                vp = sv.edge.vector().scale(3 / 4)
-                nvec = vp.plus(v0).plus(vn1)
-                sv.position = point(nvec[0], nvec[1], nvec[2])
-
-        # recompute the position of the vertices that are new
-        for v in vnew.values():
-            e0 = v.edge
-            # case 1: interior edge on boundary
-            if e0.twin is None:
-                fvec = [(1 / 2) * (x + y) for x,
-                        y in zip(v.position.components(),
-                                 e0.vertex(1).position.components())]
-                v.position = point(fvec[0], fvec[1], fvec[2])
-
-            # case 2: split interior edge
-            else:
-                e1 = e0.twin
-                v1 = e1.source
-                f0 = e0.next.next.source
-                f1 = e1.next.next.source
-                fs = [(1 / 8) * (x + y) for x,
-                      y in zip(f1.position.components(),
-                               f0.position.components())]
-                vs = [(3 / 8) * (x + y) for x,
-                      y in zip(v.position.components(),
-                               v1.position.components())]
-                fvec = [x + y for x, y in zip(fs, vs)]
-                v.position = point(fvec[0], fvec[1], fvec[2])
-
-        return selfie

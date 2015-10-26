@@ -1,9 +1,8 @@
 import logging
+from .structures.we import face, vertex
 logger = logging.getLogger(__name__)
 logging.basicConfig(filename='logging/delaunay.log', level=logging.DEBUG)
 logging.basicConfig(filename='logging/errors.log', level=logging.WARNING)
-
-from .structures.we import face, edge, vertex, fan
 
 
 class fan_face:

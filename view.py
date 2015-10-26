@@ -4,7 +4,7 @@
 
 import sys
 from voronoi.geom.geometry import point, vector
-from random import random, choice
+from random import choice
 from ctypes import *
 
 from OpenGL.GL import *
@@ -49,9 +49,7 @@ del_edge_color_buffer = None
 
 line_shaders = None
 pt_shaders = None
-# ctl_pts = []
-# ctl_pts_color = []
-# scan = False
+
 
 xStart = 0
 yStart = 0
@@ -59,7 +57,6 @@ width = 1024
 height = 1024
 scale = 1.0 / min(width, height)
 V = None
-# ticks = 0
 
 
 def init_shaders(vs_name, fs_name):

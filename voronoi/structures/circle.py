@@ -1,5 +1,5 @@
 from ..geom.geometry import point as p
-from math import sqrt, pi, sin, cos, acos, fabs, degrees
+from math import sqrt, pi, sin, cos, fabs
 
 
 class InvalidCircle(Exception):
@@ -102,7 +102,7 @@ class Circle:
         self.c = center
         self.r = sqrt((self.s1.x - self.c.x)**2 + (self.s1.y - self.c.y)**2)
         self.low = p(self.c.x, self.c.y - self.r, 0.0)
-        empty = self._is_empty()
+        self._is_empty()
 
     def __init__(self, s1, s2, s3):
         self.s1 = s1
