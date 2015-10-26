@@ -107,7 +107,7 @@ class Voronoi:
 
   def edgesToBuffer(self):
     #reveal the computed diagram
-    print("ebuf")
+    # print("ebuf")
     edges, cBuf = self.edgeDCEL.edgesToBuffer()
     return edges, cBuf
 
