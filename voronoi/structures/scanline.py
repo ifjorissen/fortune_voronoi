@@ -3,7 +3,7 @@ from ..geom.geometry import point as p
 from ..geom.geometry import vector as v
 
 class Scanline:
-  def __init__(self, e1=p(-1.0, 1.0, 0.0), e2=p(1.0, 1.0, 0.0), vec=v(0.0, -.0005, 0.0), color=v(1.0,1.0,1.0)):
+  def __init__(self, e1=p(-1.0, 1.0, 0.0), e2=p(1.0, 1.0, 0.0), vec=v(0.0, -.001, 0.0), color=v(1.0,1.0,1.0)):
     self.y = e1.y
     self.dy = vec.dy
     self.dx = vec

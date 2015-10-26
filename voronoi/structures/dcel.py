@@ -7,7 +7,7 @@ from ..geom.geometry import point, vector
 from .we import fan
 # from math import inf
 from itertools import chain, combinations
-from math import pi, sqrt, acos, atan, atan2, degrees, cos, radians, sin, tan
+from math import pi, sqrt, acos, atan, atan2, degrees, cos, radians, sin, tan, fabs
 
 class Vertex():
   def __init__(self, circle, o):
@@ -23,20 +23,6 @@ class Vertex():
     self.outgoing_edges = []
     self.edge = None
 
-  def around(self):
-    return fan(self)
-
-  def faces(self):
-    return [e.face for e in fan(self)]
-
-  def isSaturated(self):
-    if len(self.incident_edges) == 3:
-      return True
-    elif len(self.outgoing_edges) == 3:
-      return True
-    else:
-      return False
-
   def sortEdges(self):
     '''
     take the set of outgoing edges and sort them by angle clockwise
@@ -45,19 +31,9 @@ class Vertex():
 
   def sortTwinEdges(self):
     '''
-    take the set of outgoing edges and sort them by angle clockwise
+    take the set of outgoing edge twins and sort them by angle clockwise
     '''
     self.outgoing_edges.sort(key=lambda edge:edge.twin.angle, reverse=False)
-
-  def validate_vertex(self):
-    if len(self.incident_edges) == self.outgoing_edges == 3:
-      #validate that all incident edges have a twin that's an outgoing edge
-      return True
-
-    else:
-      #raise an invalid vertex error
-      print("error")
-      return False
 
 class Edge():
   def __init__(self, s1, s2, source, o):
@@ -65,29 +41,40 @@ class Edge():
     self.c = vector(1.0,1.0,1.0)
     self.s1 = s1
     self.s2 = s2
+    self.length = None
     self.e1 = None
     self.e2 = None 
 
     #for use in data stucture
-    self.face = s1
     self.twin = None
     self.next = None
     self.prev = None
     self.source = source
+
+    #for use in edge clipping
     self.angle = self.angle()
+
 
     if (s1, s2) in o.edges:
       log.debug("Bad Edge Orientation for {} src: {}".format(self, self.source))
       log.debug("REPLACE: This edge already existed there: {} src:{}".format(o.edges[(s1, s2)], o.edges[(s1, s2)].source))
-
+    
+    #update outgoing edges
     if self.source is not None:
       self.source.outgoing_edges.append(self)
       
-
+    #update twin
     if (s2, s1) in o.edges:
       self.twin = o.edges[(s2, s1)]
       o.edges[(s2, s1)].twin = self
 
+    #associate this edge with a Cell
+    try:
+      f = o.cells[s1]
+      # f.edges.append(self)
+    except:
+      f = o.addCell(s1, self)
+    self.cell = f
     o.edges[(s1, s2)] = self
 
   def angle(self):
@@ -101,6 +88,64 @@ class Edge():
     else:
         return degrees(2.0*pi - acos(-dy/l))
 
+  def dist_to_boundary(self, bounds, v, e):
+    ymax = bounds["ymax"]
+    xmax = bounds["xmax"]
+    ymin = bounds["ymin"]
+    xmin = bounds["xmin"]
+
+    o = self.source.position
+    doxmax = fabs((xmax - o.x)/v.dx)
+    doymax = fabs((ymax - o.y)/v.dy)
+    doxmin = fabs((xmin - o.x)/v.dx)
+    doymin = fabs((ymin - o.y)/v.dy)
+
+    #get the distance from boundaries to source in appropriate quadrant
+    #calculate that length and then scale the vector by that
+    if v.dx > 0:
+      #first quadrant
+      if v.dy > 0:
+        #distance to xmax: (xmax, a) --> solve for a
+        #distance to ymax: (b, ymax) --> solve for b
+        vs_xmax = v.scale(doxmax)
+        bx = o.plus(vs_xmax)
+
+        #find the scalar the vector is scaled by to get to xmax
+        vs_ymax = v.scale(doymax)
+        by = o.plus(vs_ymax)
+
+      #fourth quadrant
+      else:
+        vs_xmax = v.scale(doxmax)
+        bx = o.plus(vs_xmax)
+
+        vs_ymin = v.scale(doymin)
+        by = o.plus(vs_ymin)
+
+    else:
+      #second quadrant
+      if v.dy > 0:
+        vs_xmin = v.scale(doxmin)
+        bx = o.plus(vs_xmin)
+
+        vs_ymax = v.scale(doymax)
+        by = o.plus(vs_ymax)
+
+      #third quadrant
+      else:
+        vs_xmin = v.scale(doxmin)
+        bx = o.plus(vs_xmin)
+
+        vs_ymin = v.scale(doymin)
+        by = o.plus(vs_ymin)
+
+    #take the minimum of the distances between the respective boundaries
+    pdx = o.dist(bx)
+    pdy = o.dist(by)
+    l = min(pdx, pdy)
+
+    return l
+
   def addSource(self, o, source):
     '''given and edge and a dcel object, assign a source and update twin'''
     log.debug("Updated source of {} with source {}".format(self, source))
@@ -109,29 +154,34 @@ class Edge():
     if (self.s2, self.s1) in o.edges:
       o.edges[(self.s2, self.s1)] = self.twin
 
-  #TO DO: edge clipping should probably be done here?
-
-
 #To Do: actually create the cells
 class Cell():
-  def __init__(self, voronoi_vertex, vertices, o):
-    self.edges = []
-    self.vertices = []
-    self.vv = voronoi_vertex
+  def __init__(self, site, o):
+    self.site = site
+    self.edge = None
+    o.cells[site] = self
+
+    # self.edges = []
 
 class VoronoiDCEL():
   def __init__(self):
-    bounds = {"xmin": -1.0, "xmax": 1.0, "ymin": -1.0, "ymax": 1.0}
+    self.bounds = {"xmin": -1.0, "xmax": 1.0, "ymin": -1.0, "ymax": 1.0}
     self.infv = None
     self.delaunay = None
     self.vertices = []
     self.edges = {}
-    self.cells = []
+    self.cells = {}
     #create infinite vertex
     if not self.infv:
       infv = Vertex(None, self)
     else:
       infv = self.infv
+
+  def addCell(self, s1, e):
+    '''given a site and a vertex, add it to the Cell'''
+    f = Cell(s1, self)
+    f.edge = e
+    # f.edges.append(e)
 
   def addVertex(self, circle):
     ''' when a circle event gets handled, add the vertex to the list and create edges'''
@@ -151,109 +201,109 @@ class VoronoiDCEL():
 
   def clipEdge(self, edge):
     '''
-    given an edge, return the endpoints (as points, to be drawn by opengl)
+    given an edge, return & set the endpoints and edge length
     '''
     if edge.next.source is self.infv or edge.source is self.infv:
       #construct a unit vector according to edge angle
       if edge.next.source is self.infv:
-        angle = edge.angle
-        e1 = edge.source.position
-
+        e = edge
       else:
-        angle = edge.twin.angle
-        e1 = edge.next.source.position
-      
-      v = vector(cos(radians(angle)), sin(radians(angle)), 0.0)
-      t = tan(radians(angle))
+        e = edge.twin
 
-      #to do: scale each edge according to boundaries
-      #interim solution: make sure the vector is long enough to cover the longest diagonal
-      dx = self.bounds["xmax"] - self.bounds["xmin"]
-      dy = self.bounds["ymax"] - self.bounds["ymin"]
-      e_scale = sqrt(dx**2 + dy**2)
+      angle = e.angle
+      nv = vector(cos(radians(angle)), sin(radians(angle)), 0.0)
+      v = nv.unit()
 
-      #scale the vector and assign endpoints
-      v2 = v.scale(e_scale)
+      if edge.length is None: 
+        l = e.dist_to_boundary(self.bounds, v, edge)
+      else:
+        l = e.length
+
+      e1 = e.source.position
+      v2 = v.scale(l)
       e2 = e1.plus(v2)
 
     else:
       e1 = edge.source.position
       e2 = edge.next.source.position
+      vl = e1.minus(e2)
+      l = vl.norm()
+
 
     edge.e1 = e1
     edge.e2 = e2
-
+    if edge.length is None:
+      edge.length = l
+      edge.twin.length = l
     return e1, e2
 
+  def clipEdges(self):
+    for edge in self.edges.values():
+      self.clipEdge(edge)
+
+  def printCells(self):
+    cell_str = "\n\n----**** printCells ****----"
+    for site, cell in self.cells.items():
+      cell_str += "\n\tCell: {} site: {} edge: {}".format(cell, cell.site, cell.edge)
+      e = cell.edge
+      v = e.source
+      while e is not None and e.next.source is not v:
+        cell_str += "\n\t\tfollowing the outgoing edge: {}, edge.source:{}, edge.next.source: {}".format(e, e.source, e.next.source)
+        e = e.next
+      cell_str += "\n\t\tlast edge of this cell {}\n".format(e, e.source, e.next.source)
+
+    cell_str += "\n----**** done with printCells ****----"
+    return cell_str
+
   def printVertices(self):
-    vert_str = "\n----**** printVertices ****----"
-    # print("\n----**** printVertices ****----")
+    vert_str = "\n\n----**** printVertices ****----"
     for vertex in self.vertices:
-      # print("Vertex {} x: {} y: {}".format(vertex, vertex.position.x, vertex.position.y))
       vert_str += "\n\tvertex {} x: {} y: {}".format(vertex, vertex.position.x, vertex.position.y)
-    # print("\n----**** done with printVertices ****----")
     vert_str += "\n----**** done with printVertices ****----"
     return vert_str
 
   def printEdgeLinks(self):
     '''Prints the link info for every edge '''
-    edge_str = "\n----**** printEdgeLinks ****----"
-    # print("\n----**** printEdges ****----")
+    edge_str = "\n\n----**** printEdgeLinks ****----"
     for sites, edge in self.edges.items():
-      # print("edge:{} face: {} src:{} prev: {} next: {} twin: {}".format(edge, edge.face, edge.source, edge.prev, edge.next, edge.twin))
-      edge_str += "\n\tedge:{} face: {} src:{} prev: {} next: {} twin: {}".format(edge, edge.face, edge.source, edge.prev, edge.next, edge.twin)
+      edge_str += "\n\tedge:{} Cell: {} src:{} prev: {} next: {} twin: {}".format(edge, edge.cell, edge.source, edge.prev, edge.next, edge.twin)
     edge_str += "\n----**** done with printEdgeLinks ****----"
-    # print("\n----**** done with printEdges ****----")
     return edge_str
 
   def printEdgeGeo(self):
     '''Prints the geometric data for every edge'''
-    edge_str = "\n----**** printEdgeGeo ****----"
-    # print("\n----**** printEdges ****----")
+    edge_str = "\n\n----**** printEdgeGeo ****----"
     for sites, edge in self.edges.items():
-      self.clipEdge(edge)
-      # print("edge:{} face: {} src:{} prev: {} next: {} twin: {}".format(edge, edge.face, edge.source, edge.prev, edge.next, edge.twin))
-      edge_str += "\n\tedge:{} angle: {} e1:{} e2: {}".format(edge, edge.angle, edge.e1, edge.e2)
+      edge_str += "\n\tedge:{} angle: {}  length:{} e1:{} e2: {}".format(edge, edge.angle, edge.length, edge.e1, edge.e2)
     edge_str += "\n----**** done with printEdgeGeo ****----"
-    # print("\n----**** done with printEdges ****----")
     return edge_str
 
   def validateCells(self):
-    validate_cell_str = "\n----**** validateCells ****----"
-    # print("\n----**** validateCells ****----")
+    validate_cell_str = "\n\n----**** validateCells ****----"
     for vertex in self.vertices:
       if vertex is not self.infv:
         validate_cell_str += "\nvertex {} with {} outgoing edges".format(vertex, len(vertex.outgoing_edges))
-        # print("\nvertex {} with {} outgoing edges".format(vertex, len(vertex.outgoing_edges)))
         for edge in vertex.outgoing_edges:
           e = edge.next
-          f = edge.face
-          validate_cell_str += "\nfollowing the outgoing edge {}, face {} edge.next:{} of this vertex trying to form a cell".format(edge, edge.face, edge.next)
-          # print("following the outgoing edge {}, face {} edge.next:{} of this vertex trying to form a cell".format(edge, edge.face, edge.next))
+          f = edge.cell
+          validate_cell_str += "\nfollowing the outgoing edge {}, Cell {} edge.next:{} of this vertex trying to form a cell".format(edge, edge.cell, edge.next)
           while e is not None and e.source is not vertex:
             validate_cell_str += "\nfollowing the outgoing edge {}".format(e)
-            validate_cell_str += "\n\tedge: {} face:{} source: {}: twin: {}: prev: {} next: {}".format(e, e.face, e.source, e.twin, e.prev, e.next)
-            # print("following the outgoing edge {}".format(e))
-            # print("\tedge: {} face:{} source: {}: twin: {}: prev: {} next: {}".format(e, e.face, e.source, e.twin, e.prev, e.next))
+            validate_cell_str += "\n\tedge: {} Cell:{} source: {}: twin: {}: prev: {} next: {}".format(e, e.Cell, e.source, e.twin, e.prev, e.next)
             e = e.next
           if e is None:
             validate_cell_str += "\nRESULT: e is none, following {} from vertex {} did not form a valid cell...".format(edge, vertex)
             log.error("\nINVALID CELL: e is none, following {} from vertex {} did not form a valid cell...".format(edge, vertex))
-            # print("RESULT: e is none, vertex {} did not form a valid cell...".format(vertex))
             return False
           elif e.source is vertex:
-            validate_cell_str += "\n\tedge: {} face:{} source: {} twin: {}: next: {}".format(e, e.face, e.source, e.twin, e.next)
-            # print("\tedge: {} face:{} source: {} twin: {}: next: {}".format(e, e.face, e.source, e.twin, e.next))
+            validate_cell_str += "\n\tedge: {} Cell:{} source: {} twin: {}: next: {}".format(e, e.Cell, e.source, e.twin, e.next)
             validate_cell_str += "\nRESULT: vertex {} formed a valid cell!\n".format(vertex)
-            # print("RESULT: vertex {} formed a valid cell!\n".format(vertex))
           else:
             log.error("RESULT: something else really weird on vertex v{}".format(vertex))
             validate_cell_str += "\nRESULT: something else really weird on vertex v{}".format(vertex)
             return False
-            # print("RESULT: something else really weird on vertex v{}".format(vertex))
     validate_cell_str += "\n----**** done with validateCells ****----\n"
     log.debug(validate_cell_str)
-    # print("----**** done with validateCells ****----\n")
     return True
 
   def handleCircle(self, circle):
@@ -261,12 +311,8 @@ class VoronoiDCEL():
     v = self.addVertex(circle)
     log.debug("Handling circle {} added {} to {}.vertices".format(circle, v, self))
 
-  def createCells(self):
-    pass
-
   def finish(self):
-    finish_str = "\n----**** voronoi finish ****----"
-    # print("----**** voronoi finish ****----")
+    finish_str = "\n\n----**** voronoi finish ****----"
     #create the edge list
     for vertex in self.vertices:
       if vertex is not self.infv:
@@ -276,17 +322,10 @@ class VoronoiDCEL():
       if vertex is not self.infv:
         for i, edge in enumerate(vertex.outgoing_edges):
           finish_str += "\n{} vertex {} edge{} edge.angle {}".format(i, vertex, edge, edge.angle)
-          # print("{} vertex {} edge{}".format(i, vertex, edge))
           try:
             etwin = self.edges[(edge.s2, edge.s1)]
           except:
             etwin = Edge(edge.s2, edge.s1, self.infv, self)
-          # print(edge)
-          # print(edge.twin)
-          # print(etwin)
-          # print(etwin.twin)
-          # edge.twin = etwin
-          # etwin.twin = edge
           #set edges prev and next
           if i < len(vertex.outgoing_edges)-1:
             etwin.next = vertex.outgoing_edges[i+1]
@@ -318,8 +357,14 @@ class VoronoiDCEL():
     finish_str += "\n----**** done with voronoi finish ****----"
     log.debug(finish_str)
 
-    self.createCells()
+    # self.createCells()
+    self.clipEdges()
     return finish_str
+
+  def printDCEL(self):
+    self.printVertices()
+    self.printEdges()
+    self.printCells()
 
   def edgesToBuffer(self):
     #return the edge buffer
@@ -329,20 +374,17 @@ class VoronoiDCEL():
     color2 = vector(0,  1.0, 0)
     color3 = vector(1.0, 0, 0)
     for edge in self.edges.values():
-      e1, e2 = self.clipEdge(edge)
-      edges.extend(e1.components())
-      edges.extend(e2.components())
+      edges.extend(edge.e1.components())
+      edges.extend(edge.e2.components())
       colors.extend(edge.s1.c.components())
       colors.extend(edge.s2.c.components())
-    return (edges, colors)
+    return edges, colors
 
-  def constructCells(self):
-    '''constructs voronoi cells for the diagram, simliar to the faces in we.py (counterclockwise)'''
-    pass
 
   def validateDCEL(self):
     '''validate the diagram'''
-    pass
+    self.finish()
+    self.validateCells()
 
 
 
