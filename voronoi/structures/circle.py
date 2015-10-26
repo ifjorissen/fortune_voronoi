@@ -1,4 +1,4 @@
-from geometry import point as p
+from ..geom.geometry import point as p
 from math import sqrt, pi, sin, cos, acos, fabs, degrees
 
 class InvalidCircle(Exception):

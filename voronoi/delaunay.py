@@ -1,4 +1,9 @@
-from we import face, edge, vertex, fan
+import logging
+logger = logging.getLogger(__name__)
+logging.basicConfig(filename='logging/delaunay.log',level=logging.DEBUG)
+logging.basicConfig(filename='logging/errors.log',level=logging.WARNING)
+
+from .structures.we import face, edge, vertex, fan
 
 class fan_face:
   ''' iterator that yields the faces around a vertex of the delaunay '''
@@ -48,9 +53,6 @@ class fan_face:
       return current.face
 
 class Delaunay:
-  # edges = []
-  # edge_buffer = []
-  # faces = []
   vertices = None
 
   def __init__(self, voronoi):
@@ -78,6 +80,4 @@ class Delaunay:
       for i in [0,1,2]:
         varray.extend(f.vertex(i).position.components())
         carray.extend(f.vertex(i).color().components())
-    # if len(varray) > 0:
-    #   print(varray)
     return (varray, carray)

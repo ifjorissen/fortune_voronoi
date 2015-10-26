@@ -19,7 +19,7 @@
 
 from random import random
 from math import sqrt, pi, sin, cos, acos
-from constants import EPSILON
+from .constants import EPSILON
 from OpenGL.GL import *
 
 #

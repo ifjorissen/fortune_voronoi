@@ -1,5 +1,10 @@
 import math
-from circle import Circle, InvalidCircle, NotEmptyCircle, CircleAlreadyCreated
+from .circle import Circle, InvalidCircle, NotEmptyCircle, CircleAlreadyCreated
+
+import logging
+import logging.config
+logging.config.fileConfig('logging.conf')
+logger = logging.getLogger('beach')
 
 class Beach:
   #default bounds if we're using the opengl simulation
@@ -47,7 +52,7 @@ class Beach:
     a = self.focus.x
     b = self.focus.y
     c = self.directrix.y
-    verty = b - (self.focus.dist2scan / 2.0)
+    # verty = b - (self.focus.dist2scan / 2.0)
     y = (1.0/(2.0*(b-c))) * (((x-a)*(x-a)) + (b*b - c*c))
 
     return y
@@ -111,6 +116,44 @@ class BeachODBLL:
     self.colorBuf = []
     self.to_remove = []
 
+  def printDBL(self):
+    pts = []
+    ptr = self.head
+    ptr_str = ""
+    while ptr is not None:
+      ptr_str += "\n\tptr: {} ptr.x: {} ptr.breakl: {} ptr.breakr: {} ".format(ptr,ptr.x, ptr.breakl, ptr.breakr)
+      ptr = ptr.next
+    logger.debug("\nPRINT BEACHFRONT: {}".format(ptr_str))
+
+  def validateDBLL(self):
+    ptr = self.head
+    validate_str = ""
+    validate_str += "\n******STARTING: VALIDATE BEACHFRONT******"
+    while ptr is not None:
+      if ptr.prev is not None and ptr.prev.next is ptr:
+        validate_str += "\n\tptr.prev.next is ptr for {}".format(ptr)
+      else:
+        if ptr.prev is None and ptr is self.head:
+          validate_str += "\n\thead for ptr{}".format(ptr)
+        else:
+          validate_str += "\n\tptr.prev.next is NOT ptr for {}".format(ptr)
+          validate_str += "\n\tptr.prev.next is {}".format(ptr.prev.next)
+
+      if ptr.next is not None and ptr.next.prev is ptr:
+        validate_str += "\n\tptr.next.prev is ptr for {}".format(ptr)
+      else:
+        if ptr.next is None and ptr is self.tail:
+          validate_str += "\n\ttail for ptr{}".format(ptr)
+          #to do: make sure this is self.tail
+        else:
+          validate_str += "\n\tptr.next.prev is NOT ptr for {}".format(ptr)
+          validate_str += "\n\tptr.next.prev is {}".format(ptr.next.prev)
+      ptr = ptr.next
+
+    self.printDBL()
+    validate_str += "\n******FINISHED: VALIDATE BEACHFRONT******\n"
+    logger.debug(validate_str)
+
 
   def removeCircles(self, bn):
     '''given a beach node, remove all circle events associated with that node'''
@@ -136,40 +179,6 @@ class BeachODBLL:
             bn.prev.prev.circles.remove(circle)
           except:
             pass
-
-  def printDBL(self):
-    pts = []
-    ptr = self.head
-    while ptr is not None:
-      pts.append((ptr,ptr.x, ptr.breakl, ptr.breakr))
-      ptr = ptr.next
-    print(pts)
-
-  def validateDBLL(self):
-    ptr = self.head
-    print("\n******STARTING: VALIDATE BEACHFRONT******")
-    while ptr is not None:
-      if ptr.prev is not None and ptr.prev.next is ptr:
-        print("ptr.prev.next is ptr for {}".format(ptr))
-      else:
-        if ptr.prev is None and ptr is self.head:
-          print("head for ptr{}".format(ptr))
-        else:
-          print("ptr.prev.next is NOT ptr for {}".format(ptr))
-          print("ptr.prev.next is {}".format(ptr.prev.next))
-
-      if ptr.next is not None and ptr.next.prev is ptr:
-        print("ptr.next.prev is ptr for {}".format(ptr))
-      else:
-        if ptr.next is None and ptr is self.tail:
-          print("tail for ptr{}".format(ptr))
-          #to do: make sure this is self.tail
-        else:
-          print("ptr.next.prev is NOT ptr for {}".format(ptr))
-          print("ptr.next.prev is {}".format(ptr.next.prev))
-      ptr = ptr.next
-    self.printDBL()
-    print("******FINISHED: VALIDATE BEACHFRONT******\n")
     
   def addCircle(self, n1, n2, n3):
     circle_events = []
@@ -178,20 +187,22 @@ class BeachODBLL:
     try:
       circle = Circle(n1.beach.focus, n2.beach.focus, n3.beach.focus)
       circle.update(scanline)
+      circ_str = "\nADD CIRCLE"
       #make sure the circle's lowest point is below the scanline (i.e, where we just added the site)
       #note that this isnt quite correct (e.g think abt case where we removed arc & are recomputing)
-      print("adding a circle @cx {}, cy {}, low {}, dist2scan {})".format(circle.c.x, circle.c.y, circle.low.y, circle.dist2scan))
-      print("circle.sites(): :{}".format([str(site) for site in circle.csites()]))
+      circ_str += "\n\t adding a circle @cx {}, cy {}, low {}, dist2scan {})".format(circle.c.x, circle.c.y, circle.low.y, circle.dist2scan)
+      circ_str += "\n\t circle.sites(): :{}".format(str([str(site) for site in circle.csites()]))
+      logger.debug(circ_str)
       n1.circles.append(circle)
       n2.circles.append(circle)
       n3.circles.append(circle)
       circle_events.append(circle)
     except InvalidCircle as IC:
-      print("CIRCLE ERROR: Not a valid circle {}".format(str(IC)))
+      logger.error("CIRCLE ERROR: Not a valid circle {}".format(str(IC)))
     except NotEmptyCircle as NEC:
-      print("CIRCLE ERROR: Not an empty circle sites included {}".format(str(NEC)))
+      logger.error("CIRCLE ERROR: Not an empty circle sites included {}".format(str(NEC)))
     except CircleAlreadyCreated as CAC:
-      print("CIRCLE ERROR: Circle already created {}".format(str(CAC)))
+      logger.error("CIRCLE ERROR: Circle already created {}".format(str(CAC)))
     return circle_events
 
   #TO DO: insert does not account for degenerate case where the new site
@@ -201,7 +212,8 @@ class BeachODBLL:
     circle_events = []
     bn = BeachNode(beach)
     self.validateDBLL()
-    print("inserting site @(x{}, y{}) bn{}".format(beach.focus.x, beach.focus.y, bn))
+    insert_str="\nINSERT SITE"
+    insert_str += "\n\tinserting site @(x{}, y{}) bn{}".format(beach.focus.x, beach.focus.y, bn)
     #list is empty, insert the beach node
     if self.head is None:
       self.head = self.tail = bn
@@ -211,6 +223,7 @@ class BeachODBLL:
 
       #this is the leftmost breakpoint
       if bn.x <= ptr.breakl:
+        insert_str += "\n\tthis is the node {}, bl = {}, br={} and  new site {}".format(ptr.x, ptr.breakl, ptr.breakr, bn.x)
         #set the new breakpoints
         bn.breakr = bn.x
         bn.breakl = bn.x
@@ -225,27 +238,21 @@ class BeachODBLL:
         #don't need to check that they're all unique since we knoe bn != bn.next
         #and there's no way bn.next can equal bn.next.next
         if bn.next.next is not None:
+          logger.debug(insert_str)
           return self.addCircle(bn, bn.next, bn.next.next)
 
       else:
         while ptr is not None:
           #site is to the right of the left breakpoint and left of right breakpoint
-          if (ptr.breakl <= bn.x) and (ptr.breakr >= bn.x):
-            print("this is the node {}, bl = {}, br={} and  new site {}".format(ptr.x, ptr.breakl, ptr.breakr, bn.x))
+          if (ptr.breakl <= bn.x) and (ptr.breakr > bn.x):
+            rbn = None
+            insert_str += "\n\tthis is the node {}, bl = {}, br={} and  new site {}".format(ptr.x, ptr.breakl, ptr.breakr, bn.x)
             bn.breakl = bn.x
             bn.breakr = bn.x
 
-            # rbn = BeachNode(ptr.beach, bn, ptr.next, bn.breakr, ptr.breakr)
-            # if ptr.next:
-            #   rbn.next.prev = rbn
-            # bn.next = rbn
-            # ptr.breakr = bn.breakl
-            # bn.prev = ptr
-            # ptr.next = bn
-
             #make a new node to the right if we need to
             pl, pr = ptr.beach.inv_arceqn()
-            if bn.x > pl or bn.x < pr:
+            if bn.x > pl and bn.x < pr:
               rbn = BeachNode(ptr.beach, bn, ptr.next, bn.breakr, pr)
               if ptr.next:
                 rbn.next.prev = rbn
@@ -271,15 +278,15 @@ class BeachODBLL:
             if bn.next and bn.next.next:
               circle_events.extend(self.addCircle(bn, bn.next, bn.next.next))
 
-            if rbn:
+            if rbn is not None:
               #two sites to the right
               if rbn.next and rbn.next.next:
                 # print("two sites to the right")
                 circle_events.extend(self.addCircle(rbn, rbn.next, rbn.next.next))
 
-              if not rbn.next:
+              if rbn.next is None:
                 self.tail = rbn
-
+            logger.debug(insert_str)
             self.validateDBLL()
             return circle_events
           else:
@@ -295,15 +302,13 @@ class BeachODBLL:
               if bn.prev and bn.prev.prev:
                 # print("two sites to the left")
                 circle_events.extend(self.addCircle(bn.prev.prev, bn.prev, bn))
+              logger.debug(insert_str)
               return circle_events
             else:
               ptr = ptr.next
 
-
   def remove(self, ptr):
-    #find the ptr
-    #TO DO: add circle event if necessary
-    print("removing site bn{} @(x{} y{}) with bl {} br {}".format(ptr, ptr.x, ptr.y, ptr.breakl, ptr.breakr))
+    logger.debug("\nREMOVE ARC: \n\tremoving arc bn{} @(x{} y{}) with bl {} br {}".format(ptr, ptr.x, ptr.y, ptr.breakl, ptr.breakr))
     self.printDBL()
     circle_events = []
     cur = self.head
@@ -345,12 +350,9 @@ class BeachODBLL:
           bkpts = ptr.beach.intersect(ptr.next.beach)
           if ptr.prev is None:
             ptr.breakl, tmp = ptr.beach.inv_arceqn()
-            # if breakl == ptr.x:
-            #   print(ptr.breakl)
-            #   ptr.breakl = min(ptr.breakl, breakl)
-            # print("FIRST NODE ptr.breakl {} breakr {} ptr.next.breakl {} bkptsL{} bkptsR{}".format(ptr.breakl, tmp, ptr.next.breakl, bkpts[0], bkpts[1]))
+
             ptr.breakl = min(ptr.breakl, min(bkpts))
-          if ptr.y >= ptr.next.y:
+          if ptr.y > ptr.next.y:
             # oldbreakr = ptr.breakr
             bpt = min(bkpts)
             if bpt is not ptr.x:
@@ -364,9 +366,9 @@ class BeachODBLL:
 
           if (ptr.breakr < ptr.breakl):
             if (ptr.breakl > ptr.beach.bounds["xmin"]) and (ptr.breakr > ptr.beach.bounds["xmin"]):
-              print("URGENT: should remove: bn {} ptr.x {} bl:{} br:{}".format(ptr, ptr.x, ptr.breakl, ptr.breakr))
+              logger.error("\nUPDATE ERROR: \n\tURGENT: should remove: bn {} ptr.x {} bl:{} br:{}".format(ptr, ptr.x, ptr.breakl, ptr.breakr))
             else:
-              print("OUT OF BOUNDS: should remove: bn {} ptr.x {} bl:{} br:{}".format(ptr, ptr.x, ptr.breakl, ptr.breakr))
+              logger.warning("\nUPDATE WARNING: \n\tOUT OF BOUNDS: should remove: bn {} ptr.x {} bl:{} br:{}".format(ptr, ptr.x, ptr.breakl, ptr.breakr))
             self.printDBL()
             # self.remove(ptr)
             # self.printDBL()
@@ -374,7 +376,6 @@ class BeachODBLL:
           self.update(ptr.next)
         else:
           tmp, ptr.breakr = ptr.beach.inv_arceqn()
-          # print("last node breakpoints tmp{} ptr.breakr {}".format(tmp, ptr.breakr))
           return
 
 
@@ -384,10 +385,9 @@ class BeachODBLL:
     cur = self.head
     while cur is not None:
       if circle.low.x >= cur.breakl and circle.low.x <= cur.breakr:
-        #remove beachfront associated with rightmost site
         if math.fabs(math.fabs(circle.low.x) - math.fabs(cur.breakl)) > .005 and math.fabs(math.fabs(circle.low.x) - math.fabs(cur.breakr)) > .005:
-          print(math.fabs(math.fabs(circle.low.x) - math.fabs(cur.breakl)))
-          print(math.fabs(math.fabs(circle.low.x) - math.fabs(cur.breakr)))
+          # print(math.fabs(math.fabs(circle.low.x) - math.fabs(cur.breakl)))
+          # print(math.fabs(math.fabs(circle.low.x) - math.fabs(cur.breakr)))
           # print("cur.breakl {} br{}".format(cur.breakl, cur.breakr))
           # print("cur{} cur dist {}".format(cur, dist))
           if cur.prev and cur.prev.x != cur.prev.breakl and cur.prev.x != cur.prev.breakr:
@@ -401,8 +401,8 @@ class BeachODBLL:
           arcs = {}
           dist = math.fabs(cur.breakl - cur.breakr)
           arcs[dist] = cur
-          print(math.fabs(math.fabs(circle.low.x) - math.fabs(cur.breakl)))
-          print(math.fabs(math.fabs(circle.low.x) - math.fabs(cur.breakr)))
+          # print(math.fabs(math.fabs(circle.low.x) - math.fabs(cur.breakl)))
+          # print(math.fabs(math.fabs(circle.low.x) - math.fabs(cur.breakr)))
           # print("cur.breakl {} br{}".format(cur.breakl, cur.breakr))
           # print("cur{} cur dist {}".format(cur, dist))
           if cur.prev and cur.prev.x != cur.prev.breakl and cur.prev.x != cur.prev.breakr:
@@ -425,6 +425,7 @@ class BeachODBLL:
 
   def toBuffer(self):
     self.update(self.head)
+
     self.beachBuf = []
     self.colorBuf = []
     ptr = self.head

@@ -38,8 +38,8 @@
 #
 
 import sys
-from geometry import point, vector, EPSILON, ORIGIN
-from quat import quat
+from voronoi.geom.geometry import point, vector, EPSILON, ORIGIN
+from voronoi.geom.quat import quat
 # from we import vertex, edge, face, object
 from random import random
 from math import sin, cos, acos, asin, pi, sqrt
@@ -49,8 +49,8 @@ import random
 from OpenGL.GL import *
 from OpenGL.GLUT import *
 from OpenGL.GLUT.freeglut import *
-from voronoi import Voronoi
-from delaunay import Delaunay
+from voronoi.voronoi import Voronoi
+from voronoi.delaunay import Delaunay
 import numpy as np
 
 colors = [
@@ -364,12 +364,13 @@ def keypress(key, x, y):
 
 def mouse(button, state, x, y):
   global ctl_pts, ctl_pts_color, site_array, color_array, V
-  ctwpt = screenToWorldCoords(x, y)
-  if button == GLUT_LEFT_BUTTON and state == GLUT_DOWN:
-    color = random.choice(colors)
-    V.addSite(ctwpt, color)
-  update_site_buffers()
-  glutPostRedisplay()
+  if not V.scanning:
+    ctwpt = screenToWorldCoords(x, y)
+    if button == GLUT_LEFT_BUTTON and state == GLUT_DOWN:
+      color = random.choice(colors)
+      V.addSite(ctwpt, color)
+    update_site_buffers()
+    glutPostRedisplay()
 
 
 def screenToWorldCoords(mousex, mousey):
@@ -409,7 +410,7 @@ def update_scanline_buffers():
 
 def update_beachline_buffers():
   global beachfront_buffer, beachfront_color_buffer
-  beachfront_array, color_array = V.beachline.toBuffer()
+  beachfront_array, color_array = V.beachfrontToBuffer()
 
   beachfront_buffer = glGenBuffers(1)
   glBindBuffer(GL_ARRAY_BUFFER, beachfront_buffer)

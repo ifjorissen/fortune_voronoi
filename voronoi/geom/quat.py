@@ -9,8 +9,8 @@
 # This defines the class of quaternion objects, class quat.
 #
 
-from constants import EPSILON
-from geometry import vector
+from .constants import EPSILON
+from .geometry import vector
 from math import sin, cos, sqrt, acos, pi
 from OpenGL.GL import *
 
