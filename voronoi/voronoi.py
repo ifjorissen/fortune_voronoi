@@ -106,7 +106,7 @@ class Voronoi:
             f.write(edgeGeo)
             f.write(cells)
         else:
-            printf("...dcel was not valid for some reason... writing raw data anyway")
+            print("...dcel was not valid for some reason... writing raw data anyway")
         fverts = open('results/vertices.dat', 'w')
         fedges = open('results/edges.dat', 'w')
         fsites = open('results/sites.dat', 'w')
@@ -194,9 +194,17 @@ class Voronoi:
             process_str += "\nSite EVENT: \n\tsite event site{} @y = {}".format(
                 site, site.y)
             beach = Beach(site, self.scanline)
-            circle_events, bad_circles = self.beachline.insert(beach)
-            print("site event ce:{}, bc{}".format(circle_events, bad_circles))
+            asap_circles, circle_events, bad_circles = self.beachline.insert(beach)
+            # print("site event ce:{}, bc{}".format(circle_events, bad_circles))
             self.beaches.append(beach)
+            for circ in asap_circles:
+                process_str += "\nASAP Circle EVENT: \n\tcircle event @(cx{}, cy{}), sy{}".format(
+                circ.c.x, circ.c.y, self.scanline.y)
+                self.vvertices.append(circ.c)
+                self.delaunay.add_face(circ)
+                self.edgeDCEL.handleCircle(circ)
+                self.handled_circles.append(circ)
+
             for c in bad_circles:
                 try:
                     for i in range(0, self.event_pq.count(c)):
@@ -222,7 +230,21 @@ class Voronoi:
             self.delaunay.add_face(circle)
             self.edgeDCEL.handleCircle(circle)
 
-            new_circles, bad_circles = self.beachline.remove(arc)
+            asap_circles, new_circles, bad_circles = self.beachline.remove(arc)
+            for circ in asap_circles:
+                process_str += "\nASAP Circle EVENT: \n\tcircle event @(cx{}, cy{}), sy{}".format(
+                circ.c.x, circ.c.y, self.scanline.y)
+                arc = self.beachline.find_by_x(circ)
+                a_circles, n_circles, b_circles = self.beachline.remove(arc)
+                new_circles.extend(n_circles)
+                bad_circles.extend(b_circles)
+                print(a_circles)
+                
+                self.vvertices.append(circ.c)
+                self.delaunay.add_face(circ)
+                self.edgeDCEL.handleCircle(circ)
+                self.handled_circles.append(circ)
+
             for c in bad_circles:
                 try:
                     for i in range(0, self.event_pq.count(c)):

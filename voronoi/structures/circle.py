@@ -10,6 +10,16 @@ class InvalidCircle(Exception):
     def __str__(self):
         return repr([str(site) for site in self.sites])
 
+class CircleAboveSweepline(Exception):
+
+    def __init__(self, sweepline):
+        self.sites = sites
+        self.sweep = sweepline.y
+
+    def __str__(self):
+        return repr([str(site) for site in self.sites] + " " +\
+            "c.low: {} scanline.y: {}".format(self.y, self.sweep))
+
 
 class NotEmptyCircle(Exception):
 
@@ -37,7 +47,6 @@ class Circle:
     '''
     created_circles = []
     sites = []
-    num_circles = 0
 
     # should probably be a class method
     def already_created(self):
@@ -68,9 +77,7 @@ class Circle:
         if len(included) > 0:
             raise NotEmptyCircle(self.csites(), included)
         else:
-            #this is a valid circle
-            # Circle.num_circles += Circle.num_circles + 1
-            # print("number of circles created: {}".format(self.num_circles))
+            # this is a valid circle
             return True
 
     def _get_center(self):
@@ -109,12 +116,22 @@ class Circle:
         self._is_empty()
 
 
-    def __init__(self, s1, s2, s3):
+    def above_sweepline(self, sweepline):
+        if (self.low.y > sweepline.y):
+            self.asap = True
+            # raise CircleAboveSweepline(self, sweepline)
+            return True
+        else:
+            return False
+
+    def __init__(self, s1, s2, s3, sweepline):
         self.s1 = s1
         self.s2 = s2
         self.s3 = s3
-        self.already_created()
+        self.asap = False
+        # self.already_created()
         self.set_eqn()
+        self.above_sweepline(sweepline)
         if self.low is not None:
             self.y = self.low.y
 

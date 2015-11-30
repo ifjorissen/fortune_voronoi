@@ -1,5 +1,5 @@
 from math import fabs, sqrt, isinf
-from .circle import Circle, InvalidCircle, NotEmptyCircle, CircleAlreadyCreated
+from .circle import Circle, InvalidCircle, NotEmptyCircle, CircleAlreadyCreated, CircleAboveSweepline
 
 import logging
 import logging.config
@@ -192,9 +192,10 @@ class BeachODBLL:
 
     def addCircle(self, n1, n2, n3):
         circle_events = []
+        asap_circles = []
         scanline = n1.beach.directrix
         try:
-            circle = Circle(n1.beach.focus, n2.beach.focus, n3.beach.focus)
+            circle = Circle(n1.beach.focus, n2.beach.focus, n3.beach.focus, scanline)
             circle.update(scanline)
             circ_str = "\nADD CIRCLE"
             # make sure the circle's lowest point is below the scanline (i.e, where we just added the site)
@@ -205,10 +206,13 @@ class BeachODBLL:
             circ_str += "\n\t circle.sites(): :{}".format(
                 str([str(site) for site in circle.csites()]))
             logger.debug(circ_str)
-            n1.circles.append(circle)
-            n2.circles.append(circle)
-            n3.circles.append(circle)
-            circle_events.append(circle)
+            if circle.asap:
+                asap_circles.append(circle)
+            else:
+                n1.circles.append(circle)
+                n2.circles.append(circle)
+                n3.circles.append(circle)
+                circle_events.append(circle)
         except InvalidCircle as IC:
             logger.error("CIRCLE ERROR: Not a valid circle {}".format(str(IC)))
         except NotEmptyCircle as NEC:
@@ -218,7 +222,13 @@ class BeachODBLL:
         except CircleAlreadyCreated as CAC:
             logger.error(
                 "CIRCLE ERROR: Circle already created {}".format(str(CAC)))
-        return circle_events
+        # except CircleAboveSweeplinw as CAS:
+        #     #and handle the circle immediately!!! DO THAT
+        #     logger.info(
+        #         "CIRCLE INFO: Circle located above sweepline {}".format(str(CAS)))
+        #     asap_circles.append(circle)
+
+        return asap_circles, circle_events
 
     # TO DO: insert does not account for degenerate case where the new site
     # is inserted exactly at the intersection of the sites to the right and
@@ -227,6 +237,7 @@ class BeachODBLL:
         # print("inserting")
         circle_events = []
         bad_circles = []
+        asap_circles = []
         bn = BeachNode(beach)
         self.validateDBLL()
         insert_str = "\nINSERT SITE"
@@ -241,7 +252,7 @@ class BeachODBLL:
             insert_str += "\n\tthis is the first and only node {}, bl = {}, br={} and  new site {}".format(
                 bn.x, bn.breakl, bn.breakr, bn.x)
             logger.debug(insert_str)
-            return circle_events, bad_circles
+            return asap_circles, circle_events, bad_circles
 
         # list is not empty, insert the beach node
         else:
@@ -278,28 +289,41 @@ class BeachODBLL:
                         # *** ADD Circle Events ***
                         # 2 sites to the left
                         if bn.prev and bn.prev.prev:
-                            circle_events.extend(
-                                self.addCircle(bn.prev.prev, bn.prev, bn))
+                            cetmp, asaptmp = self.addCircle(bn.prev.prev, bn.prev, bn)
+                            circle_events.extend(cetmp)
+                            asap_circles.extend(asaptmp)
+                            # circle_events.extend(
+                            #     self.addCircle(bn.prev.prev, bn.prev, bn))
 
                         # (we don't need to handle sites to left and right for bn since bn.prev and bn.next are the same arc)
 
                         # two sites to the right of bn
                         if bn.next and bn.next.next:
-                            circle_events.extend(
-                                self.addCircle(bn, bn.next, bn.next.next))
+                            cetmp, asaptmp = self.addCircle(bn, bn.next, bn.next.next)
+                            circle_events.extend(cetmp)
+                            asap_circles.extend(asaptmp)
+                            # circle_events.extend(
+                            #     self.addCircle(bn, bn.next, bn.next.next))
 
                         # sites to the left and right of rbn and, if possible,
                         # two sites to the right of rbn
                         if rbn.next:
-                            circle_events.extend(
-                                self.addCircle(rbn.prev, rbn, rbn.next))
+                            cetmp, asaptmp = self.addCircle(rbn.prev, rbn, rbn.next)
+                            circle_events.extend(cetmp)
+                            asap_circles.extend(asaptmp)
+                            # circle_events.extend(
+                            #     self.addCircle(rbn.prev, rbn, rbn.next))
                             if rbn.next.next:
-                                circle_events.extend(self.addCircle(
-                                    rbn, rbn.next, rbn.next.next))
+                                cetmp, asaptmp = self.addCircle(
+                                    rbn, rbn.next, rbn.next.next)
+                                circle_events.extend(cetmp)
+                                asap_circles.extend(asaptmp)
+                                # circle_events.extend(self.addCircle(
+                                #     rbn, rbn.next, rbn.next.next))
 
                         logger.debug(insert_str)
                         self.validateDBLL()
-                        return circle_events, bad_circles
+                        return asap_circles, circle_events, bad_circles
 
                 if ptr.next is not None:
                     ptr = ptr.next
@@ -313,6 +337,7 @@ class BeachODBLL:
         self.printDBL()
         circle_events = []
         bad_circles = []
+        asap_circles = []
         cur = self.head
         while cur is not None:
             if cur is ptr:
@@ -325,25 +350,32 @@ class BeachODBLL:
                     cur.next.prev = None
                     # update circle events
                     if cur.next and cur.next.next and cur.next.next.next:
-                        circle_events.extend(self.addCircle(
-                            cur.next, cur.next.next, cur.next.next.next))
+                        cetmp, asaptmp = self.addCircle(
+                            cur.next, cur.next.next, cur.next.next.next)
+                        circle_events.extend(cetmp)
+                        asap_circles.extend(asaptmp)
                     self.validateDBLL()
-                    return circle_events, bad_circles
+                    return asap_circles, circle_events, bad_circles
                 else:
                     cur.prev.next = cur.next
                     if cur.next is not None:
                         cur.next.prev = cur.prev
                         if cur.next.next is not None:
-                            circle_events.extend(self.addCircle(
-                                cur.prev, cur.next, cur.next.next))
+                            cetmp, asaptmp = self.addCircle(
+                                cur.prev, cur.next, cur.next.next)
+                            circle_events.extend(cetmp)
+                            asap_circles.extend(asaptmp)
                         if cur.prev.prev is not None:
-                            circle_events.extend(self.addCircle(
-                                cur.prev.prev, cur.prev, cur.next))
+                            cetmp, asaptmp = self.addCircle(
+                                cur.prev.prev, cur.prev, cur.next)
+                            circle_events.extend(cetmp)
+                            asap_circles.extend(asaptmp)
+
                         self.validateDBLL()
-                        return circle_events, bad_circles
+                        return asap_circles, circle_events, bad_circles
                     else:
                         self.tail = cur.prev
-                        return circle_events, bad_circles
+                        return asap_circles, circle_events, bad_circles
             cur = cur.next
 
     def update(self, ptr):
