@@ -72,26 +72,50 @@ class Voronoi:
         logger.debug(read_str)
         return read_str
 
+    def rawEdgeData(self):
+        return self.edgeDCEL.edgeData()
+    
+    def rawVertData(self):
+        return self.edgeDCEL.vertData()
+
+    def rawSiteData(self):
+        site_str = "#site.x site.y\n"
+        for site in self.sites:
+            site_str += "{} {}\n".format(site.x, site.y)
+        return site_str
+
     def outputVoronoi(self):
         ''' writes the results of the voronoi diagram to results/voronoi.txt '''
-        f = open('results/voronoi.txt', 'w')
-        vertices = self.edgeDCEL.printVertices()
-        edgeLinks = self.edgeDCEL.printEdgeLinks()
-        edgeGeo = self.edgeDCEL.printEdgeGeo()
-        cells = self.edgeDCEL.printCells()
-        f.write("\n----**** voronoi results ****----")
-        f.write("\n\tThere are {} sites, {} vertices, {} edges\n".format(len(
-            self.sites), len(self.vvertices) + 1, len(self.edgeDCEL.edges.items()) / 2.0))
-        f.write(
-            "\n\tDiagram Bounds: xmin: {} xmax: {} ymin: {} ymax: {}".format(
-                self.bounds["xmin"],
-                self.bounds["xmax"],
-                self.bounds["ymin"],
-                self.bounds["ymax"]))
-        f.write(vertices)
-        f.write(edgeLinks)
-        f.write(edgeGeo)
-        f.write(cells)
+        if(self.validateDCEL()):
+            f = open('results/voronoi.txt', 'w')
+            vertices = self.edgeDCEL.printVertices()
+            edgeLinks = self.edgeDCEL.printEdgeLinks()
+            edgeGeo = self.edgeDCEL.printEdgeGeo()
+            cells = self.edgeDCEL.printCells()
+            f.write("\n----**** voronoi results ****----")
+            f.write("\n\tThere are {} sites, {} vertices, {} edges\n".format(len(
+                self.sites), len(self.vvertices) + 1, len(self.edgeDCEL.edges.items()) / 2.0))
+            f.write(
+                "\n\tDiagram Bounds: xmin: {} xmax: {} ymin: {} ymax: {}".format(
+                    self.bounds["xmin"],
+                    self.bounds["xmax"],
+                    self.bounds["ymin"],
+                    self.bounds["ymax"]))
+            f.write(vertices)
+            f.write(edgeLinks)
+            f.write(edgeGeo)
+            f.write(cells)
+        else:
+            printf("...dcel was not valid for some reason... writing raw data anyway")
+        fverts = open('results/vertices.dat', 'w')
+        fedges = open('results/edges.dat', 'w')
+        fsites = open('results/sites.dat', 'w')
+        edges = self.rawEdgeData()
+        vertices = self.rawVertData()
+        sites = self.rawSiteData()
+        fverts.write(vertices)
+        fedges.write(edges)
+        fsites.write(sites)
         f.write("\n----**** done outputting voronoi results ****----\n")
 
     def edgesToBuffer(self):
@@ -170,8 +194,19 @@ class Voronoi:
             process_str += "\nSite EVENT: \n\tsite event site{} @y = {}".format(
                 site, site.y)
             beach = Beach(site, self.scanline)
-            circle_events = self.beachline.insert(beach)
+            circle_events, bad_circles = self.beachline.insert(beach)
+            print("site event ce:{}, bc{}".format(circle_events, bad_circles))
             self.beaches.append(beach)
+            for c in bad_circles:
+                try:
+                    for i in range(0, self.event_pq.count(c)):
+                        self.event_pq.remove(c)
+                        process_str += "\n\tRemoving this circle event {} @y{} from the queue".format(
+                            c, c.y)
+                except:
+                    logger.warning(
+                            "WARNING: could not remove c:{} cx:{}".format(
+                                c, c.c))
             if circle_events:
                 self.circles.extend(circle_events)
                 self.event_pq.extend(circle_events)
@@ -187,15 +222,7 @@ class Voronoi:
             self.delaunay.add_face(circle)
             self.edgeDCEL.handleCircle(circle)
 
-            bad_circles = arc.circles
-            new_circles = self.beachline.remove(arc)
-            if new_circles:
-                for c in new_circles:
-                    if not c.equals(circle):
-                        self.circles.append(c)
-                        self.event_pq.append(c)
-                        process_str += "\n\tAdding this circle event {} @y{} to the queue".format(
-                            c, c.y)
+            new_circles, bad_circles = self.beachline.remove(arc)
             for c in bad_circles:
                 try:
                     for i in range(0, self.event_pq.count(c)):
@@ -211,6 +238,13 @@ class Voronoi:
                         logger.warning(
                             "WARNING: circle  c:{} cx:{} was not removed and was circle {}".format(
                                 c, c.c, circle))
+            if new_circles:
+                for c in new_circles:
+                    if not c.equals(circle):
+                        self.circles.append(c)
+                        self.event_pq.append(c)
+                        process_str += "\n\tAdding this circle event {} @y{} to the queue".format(
+                            c, c.y)
             self.handled_circles.append(circle)
         logger.debug(process_str)
         # update all the new sites

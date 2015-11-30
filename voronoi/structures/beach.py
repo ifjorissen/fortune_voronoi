@@ -116,7 +116,6 @@ class BeachODBLL:
         self.tail = tail
         self.beachBuf = []
         self.colorBuf = []
-        self.to_remove = []
 
     def printDBL(self):
         ptr = self.head
@@ -163,27 +162,33 @@ class BeachODBLL:
     def removeCircles(self, bn):
         '''given a beach node, remove all circle events associated with that node'''
         # note: the arc that disappears must be the oldest one
+        bad_circles = []
         for circle in bn.circles:
             if bn.next is not None:
                 try:
                     bn.next.circles.remove(circle)
+                    bad_circles.append(circle)
                 except:
                     pass
                 if bn.next.next is not None:
                     try:
                         bn.next.next.circles.remove(circle)
+                        bad_circles.append(circle)
                     except:
                         pass
             if bn.prev is not None:
                 try:
                     bn.prev.circles.remove(circle)
+                    bad_circles.append(circle)
                 except:
                     pass
                 if bn.prev.prev is not None:
                     try:
                         bn.prev.prev.circles.remove(circle)
+                        bad_circles.append(circle)
                     except:
                         pass
+        return bad_circles
 
     def addCircle(self, n1, n2, n3):
         circle_events = []
@@ -221,6 +226,7 @@ class BeachODBLL:
     def insert(self, beach):
         # print("inserting")
         circle_events = []
+        bad_circles = []
         bn = BeachNode(beach)
         self.validateDBLL()
         insert_str = "\nINSERT SITE"
@@ -235,6 +241,7 @@ class BeachODBLL:
             insert_str += "\n\tthis is the first and only node {}, bl = {}, br={} and  new site {}".format(
                 bn.x, bn.breakl, bn.breakr, bn.x)
             logger.debug(insert_str)
+            return circle_events, bad_circles
 
         # list is not empty, insert the beach node
         else:
@@ -243,8 +250,7 @@ class BeachODBLL:
                 # site is to the right of the left breakpoint and left of right
                 # breakpoint
                 if (ptr.breakl <= bn.x):
-                    if (ptr.next is not None and (
-                            ptr.next.breakl > bn.x)) or isinf(ptr.breakr):
+                    if (ptr.next is not None and (ptr.next.breakl > bn.x) or isinf(ptr.breakr)):
                         insert_str += "\n\tthis is the node {}, bl = {}, br={} and  new site {}".format(
                             ptr.x, ptr.breakl, ptr.breakr, bn.x)
                         bn.breakl, bn.breakr = ptr.beach.intersect(bn.beach)
@@ -267,6 +273,8 @@ class BeachODBLL:
                         ptr.breakr = bn.breakl
                         bn.breakr = bn.next.breakl
 
+                        # *** REMOVE Circle Events ***
+                        bad_circles = self.removeCircles(ptr)
                         # *** ADD Circle Events ***
                         # 2 sites to the left
                         if bn.prev and bn.prev.prev:
@@ -291,7 +299,7 @@ class BeachODBLL:
 
                         logger.debug(insert_str)
                         self.validateDBLL()
-                        return circle_events
+                        return circle_events, bad_circles
 
                 if ptr.next is not None:
                     ptr = ptr.next
@@ -304,12 +312,12 @@ class BeachODBLL:
                 ptr, ptr.x, ptr.y, ptr.breakl, ptr.breakr))
         self.printDBL()
         circle_events = []
+        bad_circles = []
         cur = self.head
         while cur is not None:
             if cur is ptr:
                 # remove circle events associated with this node
-                if len(cur.circles) > 0:
-                    self.removeCircles(cur)
+                bad_circles = self.removeCircles(cur)
                 # special case where we remove the first node, we know it's not
                 # the only node
                 if cur is self.head:
@@ -320,21 +328,22 @@ class BeachODBLL:
                         circle_events.extend(self.addCircle(
                             cur.next, cur.next.next, cur.next.next.next))
                     self.validateDBLL()
-                    return circle_events
-                if cur.prev is not None:
-                    cur.prev.next = cur.next
-                if cur.next is not None:
-                    cur.next.prev = cur.prev
-                    if cur.next.next is not None:
-                        circle_events.extend(self.addCircle(
-                            cur.prev, cur.next, cur.next.next))
-                    if cur.prev.prev is not None:
-                        circle_events.extend(self.addCircle(
-                            cur.prev.prev, cur.prev, cur.next))
-                    self.validateDBLL()
-                    return circle_events
+                    return circle_events, bad_circles
                 else:
-                    self.tail = cur.prev
+                    cur.prev.next = cur.next
+                    if cur.next is not None:
+                        cur.next.prev = cur.prev
+                        if cur.next.next is not None:
+                            circle_events.extend(self.addCircle(
+                                cur.prev, cur.next, cur.next.next))
+                        if cur.prev.prev is not None:
+                            circle_events.extend(self.addCircle(
+                                cur.prev.prev, cur.prev, cur.next))
+                        self.validateDBLL()
+                        return circle_events, bad_circles
+                    else:
+                        self.tail = cur.prev
+                        return circle_events, bad_circles
             cur = cur.next
 
     def update(self, ptr):

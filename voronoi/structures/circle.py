@@ -37,6 +37,7 @@ class Circle:
     '''
     created_circles = []
     sites = []
+    num_circles = 0
 
     # should probably be a class method
     def already_created(self):
@@ -58,7 +59,7 @@ class Circle:
     def _is_empty(self):
         included = []
         # check to make sure the circle is empty
-        for site in self.sites:
+        for site in Circle.sites:
             if site not in self.csites():
                 square_dist = (self.c.x - site.x) ** 2 + \
                     (self.c.y - site.y) ** 2
@@ -67,6 +68,9 @@ class Circle:
         if len(included) > 0:
             raise NotEmptyCircle(self.csites(), included)
         else:
+            #this is a valid circle
+            # Circle.num_circles += Circle.num_circles + 1
+            # print("number of circles created: {}".format(self.num_circles))
             return True
 
     def _get_center(self):
@@ -104,6 +108,7 @@ class Circle:
         self.low = p(self.c.x, self.c.y - self.r, 0.0)
         self._is_empty()
 
+
     def __init__(self, s1, s2, s3):
         self.s1 = s1
         self.s2 = s2
@@ -112,6 +117,7 @@ class Circle:
         self.set_eqn()
         if self.low is not None:
             self.y = self.low.y
+
 
     def __str__(self):
         return "cx:{}, cy:{}, clow:{}".format(

@@ -252,6 +252,19 @@ class VoronoiDCEL():
         for edge in self.edges.values():
             self.clipEdge(edge)
 
+    def edgeData(self):
+        edge_str = "#e1.x e1.y e2.x e2.y\n"
+        for sites, edge in self.edges.items():
+            edge_str += "{} {}\n{} {}\n\n".format(edge.e1.x, edge.e1.y, edge.e2.x, edge.e2.y)
+        return edge_str
+
+    def vertData(self):
+        vert_str = "#vert.x vert.y\n"
+        for vertex in self.vertices:
+            if vertex is not self.infv:
+                vert_str += "{} {}\n".format(vertex.position.x, vertex.position.y)
+        return vert_str
+
     def printCells(self):
         cell_str = "\n\n----**** printCells ****----"
         for site, cell in self.cells.items():
@@ -259,7 +272,7 @@ class VoronoiDCEL():
                 cell, cell.site, cell.edge)
             e = cell.edge
             v = e.source
-            while e is not None and e.next.source is not v:
+            while e is not None and e.next is not None and e.next.source is not v:
                 cell_str += "\n\t\tfollowing the outgoing edge: {}, edge.source:{}, edge.next.source: {}".format(
                     e, e.source, e.next.source)
                 e = e.next
@@ -310,7 +323,7 @@ class VoronoiDCEL():
                         validate_cell_str += "\nfollowing the outgoing edge {}".format(
                             e)
                         validate_cell_str += "\n\tedge: {} Cell:{} source: {}: twin: {}: prev: {} next: {}".format(
-                            e, e.Cell, e.source, e.twin, e.prev, e.next)
+                            e, e.cell, e.source, e.twin, e.prev, e.next)
                         e = e.next
                     if e is None:
                         validate_cell_str += "\nRESULT: e is none, following {} from vertex {} did not form a valid cell...".format(
@@ -321,7 +334,7 @@ class VoronoiDCEL():
                         return False
                     elif e.source is vertex:
                         validate_cell_str += "\n\tedge: {} Cell:{} source: {} twin: {}: next: {}".format(
-                            e, e.Cell, e.source, e.twin, e.next)
+                            e, e.cell, e.source, e.twin, e.next)
                         validate_cell_str += "\nRESULT: vertex {} formed a valid cell!\n".format(
                             vertex)
                     else:
@@ -356,6 +369,8 @@ class VoronoiDCEL():
                         etwin = self.edges[(edge.s2, edge.s1)]
                     except:
                         etwin = Edge(edge.s2, edge.s1, self.infv, self)
+                    edge.twin = etwin
+                    etwin.twin = edge
                     # set edges prev and next
                     if i < len(vertex.outgoing_edges) - 1:
                         etwin.next = vertex.outgoing_edges[i + 1]
@@ -363,8 +378,12 @@ class VoronoiDCEL():
                     else:
                         etwin.next = vertex.outgoing_edges[0]
                         vertex.outgoing_edges[0].prev = etwin
-                    finish_str += "\n\t{} RESULT vertex {}: edge: {} edge.twin {} edge.twin.next{} edge.twin.prev: {}".format(
-                        i, vertex, edge, edge.twin, edge.twin.next, edge.twin.prev)
+                    if edge.twin.next:
+                        finish_str += "\n\tRESULT for {} vertex {}: edge: {} edge.twin {} edge.twin.next{} edge.twin.prev: {}".format(
+                            i, vertex, edge, edge.twin, edge.twin.next, edge.twin.prev)
+                    else:
+                        finish_str += "\n\tRESULT for {} vertex {}: edge: {} edge.twin {} edge.twin.prev: {}".format(
+                            i, vertex, edge, edge.twin, edge.twin.prev)
 
         # now handle the infinite vertex
         finish_str += "\nSorting edges on infinite vertex ... "
@@ -386,8 +405,12 @@ class VoronoiDCEL():
             else:
                 edge.twin.next = self.infv.outgoing_edges[0]
                 self.infv.outgoing_edges[0].prev = edge.twin
-            finish_str += "\n\tRESULT for {} vertex {}: edge: {} edge.twin {} edge.twin.next{} edge.twin.prev: {}".format(
-                i, vertex, edge, edge.twin, edge.twin.next, edge.twin.prev)
+            if edge.twin.next:
+                finish_str += "\n\tRESULT for {} vertex {}: edge: {} edge.twin {} edge.twin.next{} edge.twin.prev: {}".format(
+                    i, vertex, edge, edge.twin, edge.twin.next, edge.twin.prev)
+            else:
+                finish_str += "\n\tRESULT for {} vertex {}: edge: {} edge.twin {} edge.twin.prev: {}".format(
+                    i, vertex, edge, edge.twin, edge.twin.prev)
         # print("----**** done with voronoi finish ****----")
         finish_str += "\n----**** done with voronoi finish ****----"
         log.debug(finish_str)
