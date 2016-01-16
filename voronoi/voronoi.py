@@ -29,8 +29,20 @@ class Voronoi:
         self.handled_circles = []
         self.delaunay = Delaunay(self)
         self.edgeDCEL = VoronoiDCEL()
+        self.view_bounds = {"xmin": -1.0, "xmax": 1.0, "ymin": -1.0, "ymax": 1.0} 
         self.bounds = {"xmin": -1.0, "xmax": 1.0, "ymin": -1.0, "ymax": 1.0}
         self.createScanline()
+
+    def setBounds(self):
+        '''
+        given an array of sites, find the boundaries
+        '''
+        min_y = min(self.sites, key=lambda site: site.y)
+        max_y = max(self.sites, key=lambda site: site.y)
+
+        min_x = min(self.sites, key=lambda site: site.x)
+        max_x = max(self.sites, key=lambda site: site.x)
+        self.bounds = {"xmin": min_x.x, "xmax": max_x.x, "ymin": min_y.y, "ymax": max_y.y}
 
     def read(self, filename):
         # a site file contains one site per line, x, y coordinates
@@ -47,7 +59,6 @@ class Voronoi:
             y = float(coords[1])
             read_str += "\n adding a site located at x: {}, y: {}".format(x, y)
             p = point(x, y, 0.0)
-            # to do: raise an error if this site already exists
             self.addSite(p)
 
             # update the bounds
@@ -67,7 +78,7 @@ class Voronoi:
                        "ymin": site_ymin, "ymax": site_ymax}
         read_str += "\nDiagram Bounds: xmin: {} xmax: {} ymin: {} ymax: {}".format(
             site_xmin, site_xmax, site_ymin, site_ymax)
-        self.createScanline()
+        self.startScan()
         read_str += "\n----**** done with voronoi read ****----"
         logger.debug(read_str)
         return read_str
@@ -105,6 +116,7 @@ class Voronoi:
             f.write(edgeLinks)
             f.write(edgeGeo)
             f.write(cells)
+            f.write("\n----**** done outputting voronoi results ****----\n")
         else:
             print("...dcel was not valid for some reason... writing raw data anyway")
         fverts = open('results/vertices.dat', 'w')
@@ -116,18 +128,15 @@ class Voronoi:
         fverts.write(vertices)
         fedges.write(edges)
         fsites.write(sites)
-        f.write("\n----**** done outputting voronoi results ****----\n")
 
     def edgesToBuffer(self):
         edges, cBuf = self.edgeDCEL.edgesToBuffer()
         return edges, cBuf
 
     def createScanline(self):
-        e1 = point(self.bounds["xmin"], self.bounds["ymax"], 0.0)
-        e2 = point(self.bounds["xmax"], self.bounds["ymax"], 0.0)
+        e1 = point(self.view_bounds["xmin"], self.view_bounds["ymax"], 0.0)
+        e2 = point(self.view_bounds["xmax"], self.view_bounds["ymax"], 0.0)
         self.scanline = Scanline(e1, e2)
-        Beach.bounds = self.bounds
-        VoronoiDCEL.bounds = self.bounds
 
     def beachfrontToBuffer(self):
         beaches, cBuf = self.beachline.toBuffer()
@@ -177,8 +186,26 @@ class Voronoi:
     def validateDCEL(self):
         return self.edgeDCEL.validateCells()
 
+    def startScan(self):
+        print("starting scan...")
+        Beach.bounds = self.view_bounds
+        self.setBounds()
+        self.edgeDCEL.setBounds(self.bounds)
+        self.scanning = True
+
+    def finishScan(self):
+        print("finishing scan...")
+        self.scanning = False
+        self.outputVoronoi()
+
+    def scanStarted(self):
+        if self.scanline.y < (self.view_bounds["ymax"]):
+            return True
+        else:
+            return False
+
     def scanFinished(self):
-        if self.scanline.y < (-1.0 - self.scanline.dy):
+        if self.scanline.y < (self.view_bounds["ymin"] - self.scanline.dy):
             return True
         else:
             return False
@@ -195,16 +222,7 @@ class Voronoi:
                 site, site.y)
             beach = Beach(site, self.scanline)
             asap_circles, circle_events, bad_circles = self.beachline.insert(beach)
-            # print("site event ce:{}, bc{}".format(circle_events, bad_circles))
             self.beaches.append(beach)
-            for circ in asap_circles:
-                process_str += "\nASAP Circle EVENT: \n\tcircle event @(cx{}, cy{}), sy{}".format(
-                circ.c.x, circ.c.y, self.scanline.y)
-                self.vvertices.append(circ.c)
-                self.delaunay.add_face(circ)
-                self.edgeDCEL.handleCircle(circ)
-                self.handled_circles.append(circ)
-
             for c in bad_circles:
                 try:
                     for i in range(0, self.event_pq.count(c)):
@@ -231,20 +249,6 @@ class Voronoi:
             self.edgeDCEL.handleCircle(circle)
 
             asap_circles, new_circles, bad_circles = self.beachline.remove(arc)
-            for circ in asap_circles:
-                process_str += "\nASAP Circle EVENT: \n\tcircle event @(cx{}, cy{}), sy{}".format(
-                circ.c.x, circ.c.y, self.scanline.y)
-                arc = self.beachline.find_by_x(circ)
-                a_circles, n_circles, b_circles = self.beachline.remove(arc)
-                new_circles.extend(n_circles)
-                bad_circles.extend(b_circles)
-                print(a_circles)
-                
-                self.vvertices.append(circ.c)
-                self.delaunay.add_face(circ)
-                self.edgeDCEL.handleCircle(circ)
-                self.handled_circles.append(circ)
-
             for c in bad_circles:
                 try:
                     for i in range(0, self.event_pq.count(c)):

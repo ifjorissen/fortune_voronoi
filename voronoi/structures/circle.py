@@ -129,7 +129,6 @@ class Circle:
         self.s2 = s2
         self.s3 = s3
         self.asap = False
-        # self.already_created()
         self.set_eqn()
         self.above_sweepline(sweepline)
         if self.low is not None:

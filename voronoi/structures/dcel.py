@@ -51,6 +51,7 @@ class Edge():
         self.next = None
         self.prev = None
         self.source = source
+        self.clip_epsilon = .25
 
         # for use in edge clipping
         self.angle = self.angle()
@@ -94,6 +95,7 @@ class Edge():
             return degrees(2.0 * pi - acos(-dy / l))
 
     def dist_to_boundary(self, bounds, v, e):
+        #adding a small value to the edges extend a bit beyond bounding sites
         ymax = bounds["ymax"]
         xmax = bounds["xmax"]
         ymin = bounds["ymin"]
@@ -149,7 +151,7 @@ class Edge():
         pdy = o.dist(by)
         l = min(pdx, pdy)
 
-        return l
+        return l + self.clip_epsilon
 
     def addSource(self, o, source):
         '''given and edge and a dcel object, assign a source and update twin'''
@@ -174,8 +176,8 @@ class Cell():
 
 class VoronoiDCEL():
 
-    def __init__(self):
-        self.bounds = {"xmin": -1.0, "xmax": 1.0, "ymin": -1.0, "ymax": 1.0}
+    def __init__(self, bounds={"xmin": -1.0, "xmax": 1.0, "ymin": -1.0, "ymax": 1.0}):
+        self.bounds = bounds
         self.infv = None
         self.delaunay = None
         self.vertices = []
@@ -184,6 +186,9 @@ class VoronoiDCEL():
         # create infinite vertex
         if not self.infv:
             self.infv = Vertex(None, self)
+
+    def setBounds(self, bounds):
+        self.bounds = bounds
 
     def addCell(self, s1, e):
         '''given a site and a vertex, add it to the Cell'''

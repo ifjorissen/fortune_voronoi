@@ -222,13 +222,8 @@ class BeachODBLL:
         except CircleAlreadyCreated as CAC:
             logger.error(
                 "CIRCLE ERROR: Circle already created {}".format(str(CAC)))
-        # except CircleAboveSweeplinw as CAS:
-        #     #and handle the circle immediately!!! DO THAT
-        #     logger.info(
-        #         "CIRCLE INFO: Circle located above sweepline {}".format(str(CAS)))
-        #     asap_circles.append(circle)
 
-        return asap_circles, circle_events
+        return circle_events, asap_circles
 
     # TO DO: insert does not account for degenerate case where the new site
     # is inserted exactly at the intersection of the sites to the right and
@@ -292,8 +287,6 @@ class BeachODBLL:
                             cetmp, asaptmp = self.addCircle(bn.prev.prev, bn.prev, bn)
                             circle_events.extend(cetmp)
                             asap_circles.extend(asaptmp)
-                            # circle_events.extend(
-                            #     self.addCircle(bn.prev.prev, bn.prev, bn))
 
                         # (we don't need to handle sites to left and right for bn since bn.prev and bn.next are the same arc)
 
@@ -302,8 +295,6 @@ class BeachODBLL:
                             cetmp, asaptmp = self.addCircle(bn, bn.next, bn.next.next)
                             circle_events.extend(cetmp)
                             asap_circles.extend(asaptmp)
-                            # circle_events.extend(
-                            #     self.addCircle(bn, bn.next, bn.next.next))
 
                         # sites to the left and right of rbn and, if possible,
                         # two sites to the right of rbn
@@ -311,19 +302,15 @@ class BeachODBLL:
                             cetmp, asaptmp = self.addCircle(rbn.prev, rbn, rbn.next)
                             circle_events.extend(cetmp)
                             asap_circles.extend(asaptmp)
-                            # circle_events.extend(
-                            #     self.addCircle(rbn.prev, rbn, rbn.next))
                             if rbn.next.next:
                                 cetmp, asaptmp = self.addCircle(
                                     rbn, rbn.next, rbn.next.next)
                                 circle_events.extend(cetmp)
                                 asap_circles.extend(asaptmp)
-                                # circle_events.extend(self.addCircle(
-                                #     rbn, rbn.next, rbn.next.next))
 
                         logger.debug(insert_str)
                         self.validateDBLL()
-                        return asap_circles, circle_events, bad_circles
+                        return list(set(asap_circles)), list(set(circle_events)), list(set(bad_circles))
 
                 if ptr.next is not None:
                     ptr = ptr.next

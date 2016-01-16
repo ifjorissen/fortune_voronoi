@@ -190,7 +190,7 @@ def draw():
     shs = line_shaders
     glUseProgram(shs)
     glEnable(GL_LINE_SMOOTH)
-    if V.scanning and showBeachfront and not V.scanFinished():
+    if V.scanStarted() and V.scanning and showBeachfront and not V.scanFinished():
         glLineWidth(5)
         colorAL = glGetAttribLocation(shs, 'a_color')
         posAL = glGetAttribLocation(shs, 'a_position')
@@ -238,7 +238,7 @@ def draw():
     # * * * * * * * * * * * * * * * *
     # Draw voronoi edges
     if V.scanFinished():
-        V.outputVoronoi()
+        V.finishScan()
         shs = line_shaders
         glUseProgram(shs)
         glLineWidth(3)
@@ -303,7 +303,10 @@ def keypress(key, x, y):
 
     # Handle SPACE key.
     if key == b' ':
-        V.scanning = not V.scanning
+        if V.scanStarted() is False:
+            V.startScan()
+        else:
+            V.scanning = not V.scanning
         tick(0)
 
     # hide circles
@@ -327,7 +330,7 @@ def keypress(key, x, y):
 
 def mouse(button, state, x, y):
     global ctl_pts, ctl_pts_color, site_array, color_array, V
-    if not V.scanning:
+    if not V.scanning and not V.scanStarted():
         ctwpt = screenToWorldCoords(x, y)
         if button == GLUT_LEFT_BUTTON and state == GLUT_DOWN:
             color = choice(colors)
