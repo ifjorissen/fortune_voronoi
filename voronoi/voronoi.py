@@ -1,11 +1,11 @@
 from .geom.geometry import point, vector
+from .geom.constants import EPSILON
 from .structures.scanline import Scanline
 from .structures.v_site import Site
 from .structures.beach import Beach, BeachODBLL
 from .structures.circle import Circle
 from .delaunay import Delaunay
 from .structures.dcel import VoronoiDCEL
-
 from math import fabs
 # from random import choice
 import logging
@@ -128,6 +128,8 @@ class Voronoi:
         fverts.write(vertices)
         fedges.write(edges)
         fsites.write(sites)
+        return self
+
 
     def edgesToBuffer(self):
         edges, cBuf = self.edgeDCEL.edgesToBuffer()
@@ -195,6 +197,7 @@ class Voronoi:
 
     def finishScan(self):
         print("finishing scan...")
+        self.delaunay.verify_delaunay()
         self.scanning = False
         self.outputVoronoi()
 
@@ -290,9 +293,9 @@ class Voronoi:
                 self.scanline.y = -1.0
                 self.edgeDCEL.finish()
 
-            elif self.event_pq[-1].dist2scan <= fabs(self.scanline.dy / 2):
+            elif self.event_pq[-1].dist2scan <= fabs(self.scanline.dy/2):
                 while len(self.event_pq) > 0 and (
-                        self.event_pq[-1].dist2scan <= fabs(self.scanline.dy / 2)):
+                        self.event_pq[-1].dist2scan <= fabs(self.scanline.dy/2)):
                     self.processEvent()
 
     def precompute(self):

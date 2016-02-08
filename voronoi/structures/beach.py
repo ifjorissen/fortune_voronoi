@@ -397,19 +397,20 @@ class BeachODBLL:
                 return
 
     def find_by_x(self, circle):
-        ''' given a circle and an beachfront, return the arc directly above circle.low'''
+        ''' given a circle and a beachfront, return the arc directly above circle.low'''
         cur = self.head
+        #don't we *always* remove the arc associated w/ the 2nd site?
         while cur is not None:
             if circle.low.x >= cur.breakl and circle.low.x <= cur.breakr:
                 if fabs(
                     fabs(
                         circle.low.x) -
                     fabs(
-                        cur.breakl)) > .005 and fabs(
+                        cur.breakl)) > .0025 and fabs(
                     fabs(
                         circle.low.x) -
                     fabs(
-                        cur.breakr)) > .005:
+                        cur.breakr)) > .0025:
                     return cur
                 else:
                     arcs = {}
@@ -426,6 +427,34 @@ class BeachODBLL:
                     return arcs[mindist]
             else:
                 cur = cur.next
+
+        # while cur is not None:
+        #     if circle.low.x >= cur.breakl and circle.low.x <= cur.breakr:
+        #         if fabs(
+        #             fabs(
+        #                 circle.low.x) -
+        #             fabs(
+        #                 cur.breakl)) > .005 and fabs(
+        #             fabs(
+        #                 circle.low.x) -
+        #             fabs(
+        #                 cur.breakr)) > .005:
+        #             return cur
+        #         else:
+        #             arcs = {}
+        #             dist = fabs(cur.breakl - cur.breakr)
+        #             arcs[dist] = cur
+        #             if cur.prev and cur.prev.x != cur.prev.breakl and cur.prev.x != cur.prev.breakr:
+        #                 dist = fabs(cur.prev.breakl - cur.prev.breakr)
+        #                 arcs[dist] = cur.prev
+        #             if cur.next and cur.next.x != cur.next.breakl and cur.next.x != cur.next.breakr:
+        #                 dist = fabs(cur.next.breakl - cur.next.breakr)
+        #                 arcs[dist] = cur.next
+
+        #             mindist = min(arcs.keys())
+        #             return arcs[mindist]
+        #     else:
+        #         cur = cur.next
 
     def getHead(self):
         return self.head

@@ -144,7 +144,7 @@ class vertex:
     # Returns the material color of this vertex.  For now,
     # we'll just hardwire the color to a medium slate blue.
     def color(self):
-        return vector(0.5, 0.45, 0.57)
+        return vector(0.5, 0.3, 0.8)
 
     # self.around()
     #
@@ -175,6 +175,19 @@ class vertex:
 
             # If not, then we work backwards to the prior edge.
             e = e.twin.next
+
+        # Otherwise, let's have this be the first out edge.
+        self.edge = e
+
+    def set_first_edge_ccw(self):
+        e = self.edge
+        while e is not None \
+                and e.next is not None \
+                and e.next.next is not None \
+                and e != self.edge:
+
+            # If not, then we work backwards to the prior edge.
+            e = e.next.next.twin
 
         # Otherwise, let's have this be the first out edge.
         self.edge = e

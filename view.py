@@ -57,7 +57,7 @@ width = 1024
 height = 1024
 scale = 1.0 / min(width, height)
 V = None
-
+finished = False
 
 def init_shaders(vs_name, fs_name):
     """Compile the vertex and fragment shaders from source."""
@@ -101,7 +101,7 @@ def draw():
         vvertex_buffer, vvertex_color_buffer, \
         del_edge_buffer, del_edge_color_buffer, \
         vedge_buffer, vedge_color_buffer,\
-        pt_shaders, line_shaders
+        pt_shaders, line_shaders, finished
 
     # Clear the rendering information.
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
@@ -238,7 +238,9 @@ def draw():
     # * * * * * * * * * * * * * * * *
     # Draw voronoi edges
     if V.scanFinished():
-        V.finishScan()
+        if not finished:
+            V.finishScan()
+            finished = True
         shs = line_shaders
         glUseProgram(shs)
         glLineWidth(3)
@@ -495,6 +497,7 @@ def tick(val):
         # V.update()
         V.scanning = False
         update_vedge_buffers()
+        update_delaunay_buffers()
         # glutTimerFunc(10, tick, 0)
         glutPostRedisplay()
 
