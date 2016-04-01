@@ -91,6 +91,29 @@ class Beach:
                 i += INC
         return arcBuf, cBuf
 
+    def beachData(self, bl, br):
+        DRAW_EPSILON = .002
+        INC = DRAW_EPSILON
+        beachpoints = []
+        c = self.focus.c
+
+        if isinf(br):
+            tmp, br = self.inv_arceqn()
+
+        if isinf(bl):
+            bl, tmp = self.inv_arceqn()
+
+        if self.focus.y >= self.directrix.y:
+            x = bl
+            while x <= (br + DRAW_EPSILON/2):
+                try:
+                    y = self.arceqn(x)
+                    beachpoints.append([x, y])
+                except:
+                    pass
+                x += INC
+        return beachpoints
+
     def toBuffer(self, bl, br):
         return self.update(bl, br)
 
@@ -190,13 +213,49 @@ class BeachODBLL:
                         pass
         return bad_circles
 
-    def addCircle(self, n1, n2, n3):
+    # def addCircle(self, n1, n2, n3):
+        #     circle_events = []
+        # asap_circles = []
+        # scanline = n1.beach.directrix
+        # try:
+        #     # circle = Circle(n1.beach.focus, n2.beach.focus, n3.beach.focus, scanline)
+        #     circle = Circle(n2)
+        #     circle.update(scanline)
+        #     circ_str = "\nADD CIRCLE"
+        #     # make sure the circle's lowest point is below the scanline (i.e, where we just added the site)
+        #     # note that this isnt quite correct (e.g think abt case where we
+        #     # removed arc & are recomputing)
+        #     circ_str += "\n\t adding a circle @cx {}, cy {}, low {}, dist2scan {})".format(
+        #         circle.c.x, circle.c.y, circle.low.y, circle.dist2scan)
+        #     circ_str += "\n\t circle.sites(): :{}".format(
+        #         str([str(site) for site in circle.csites()]))
+        #     logger.debug(circ_str)
+        #     if circle.asap:
+        #         asap_circles.append(circle)
+        #     else:
+        #         n1.circles.append(circle)
+        #         n2.circles.append(circle)
+        #         n3.circles.append(circle)
+
+        #         circle_events.append(circle)
+        # except InvalidCircle as IC:
+        #     logger.error("CIRCLE ERROR: Not a valid circle {}".format(str(IC)))
+        # except NotEmptyCircle as NEC:
+        #     logger.error(
+        #         "CIRCLE ERROR: Not an empty circle sites included {}".format(
+        #             str(NEC)))
+        # except CircleAlreadyCreated as CAC:
+        #     logger.error(
+        #         "CIRCLE ERROR: Circle already created {}".format(str(CAC)))
+
+        return circle_events, asap_circles
+    def addCircle(self, arc):
         circle_events = []
         asap_circles = []
-        scanline = n1.beach.directrix
         try:
-            circle = Circle(n1.beach.focus, n2.beach.focus, n3.beach.focus, scanline)
-            circle.update(scanline)
+            # circle = Circle(n1.beach.focus, n2.beach.focus, n3.beach.focus, scanline)
+            circle = Circle(arc)
+            # circle.update(scanline)
             circ_str = "\nADD CIRCLE"
             # make sure the circle's lowest point is below the scanline (i.e, where we just added the site)
             # note that this isnt quite correct (e.g think abt case where we
@@ -209,9 +268,10 @@ class BeachODBLL:
             if circle.asap:
                 asap_circles.append(circle)
             else:
-                n1.circles.append(circle)
-                n2.circles.append(circle)
-                n3.circles.append(circle)
+                # n1.circles.append(circle)
+                arc.circles.append(circle)
+                # n3.circles.append(circle)
+
                 circle_events.append(circle)
         except InvalidCircle as IC:
             logger.error("CIRCLE ERROR: Not a valid circle {}".format(str(IC)))
@@ -281,10 +341,12 @@ class BeachODBLL:
 
                         # *** REMOVE Circle Events ***
                         bad_circles = self.removeCircles(ptr)
+
                         # *** ADD Circle Events ***
                         # 2 sites to the left
                         if bn.prev and bn.prev.prev:
-                            cetmp, asaptmp = self.addCircle(bn.prev.prev, bn.prev, bn)
+                            # cetmp, asaptmp = self.addCircle(bn.prev.prev, bn.prev, bn)
+                            cetmp, asaptmp = self.addCircle(bn.prev)
                             circle_events.extend(cetmp)
                             asap_circles.extend(asaptmp)
 
@@ -292,21 +354,23 @@ class BeachODBLL:
 
                         # two sites to the right of bn
                         if bn.next and bn.next.next:
-                            cetmp, asaptmp = self.addCircle(bn, bn.next, bn.next.next)
+                            # cetmp, asaptmp = self.addCircle(bn, bn.next, bn.next.next)
+                            cetmp, asaptmp = self.addCircle(bn.next)
                             circle_events.extend(cetmp)
                             asap_circles.extend(asaptmp)
 
                         # sites to the left and right of rbn and, if possible,
                         # two sites to the right of rbn
-                        if rbn.next:
-                            cetmp, asaptmp = self.addCircle(rbn.prev, rbn, rbn.next)
-                            circle_events.extend(cetmp)
-                            asap_circles.extend(asaptmp)
-                            if rbn.next.next:
-                                cetmp, asaptmp = self.addCircle(
-                                    rbn, rbn.next, rbn.next.next)
-                                circle_events.extend(cetmp)
-                                asap_circles.extend(asaptmp)
+                        # if rbn.next:
+                        #     # cetmp, asaptmp = self.addCircle(rbn.prev, rbn, rbn.next)
+                        #     cetmp, asaptmp = self.addCircle(rbn.prev, rbn, rbn.next)
+                        #     circle_events.extend(cetmp)
+                        #     asap_circles.extend(asaptmp)
+                        #     if rbn.next.next:
+                        #         cetmp, asaptmp = self.addCircle(
+                        #             rbn, rbn.next, rbn.next.next)
+                        #         circle_events.extend(cetmp)
+                        #         asap_circles.extend(asaptmp)
 
                         logger.debug(insert_str)
                         self.validateDBLL()
@@ -337,8 +401,9 @@ class BeachODBLL:
                     cur.next.prev = None
                     # update circle events
                     if cur.next and cur.next.next and cur.next.next.next:
-                        cetmp, asaptmp = self.addCircle(
-                            cur.next, cur.next.next, cur.next.next.next)
+                        # cetmp, asaptmp = self.addCircle(
+                        #     cur.next, cur.next.next, cur.next.next.next)
+                        cetmp, asaptmp = self.addCircle(cur.next.next)
                         circle_events.extend(cetmp)
                         asap_circles.extend(asaptmp)
                     self.validateDBLL()
@@ -348,13 +413,15 @@ class BeachODBLL:
                     if cur.next is not None:
                         cur.next.prev = cur.prev
                         if cur.next.next is not None:
-                            cetmp, asaptmp = self.addCircle(
-                                cur.prev, cur.next, cur.next.next)
+                            cetmp, asaptmp = self.addCircle(cur.next)
+                            # cetmp, asaptmp = self.addCircle(
+                            #     cur.prev, cur.next, cur.next.next)
                             circle_events.extend(cetmp)
                             asap_circles.extend(asaptmp)
                         if cur.prev.prev is not None:
-                            cetmp, asaptmp = self.addCircle(
-                                cur.prev.prev, cur.prev, cur.next)
+                            # cetmp, asaptmp = self.addCircle(
+                            #     cur.prev.prev, cur.prev, cur.next)
+                            cetmp, asaptmp = self.addCircle(cur.prev)
                             circle_events.extend(cetmp)
                             asap_circles.extend(asaptmp)
 
@@ -401,63 +468,54 @@ class BeachODBLL:
         cur = self.head
         #don't we *always* remove the arc associated w/ the 2nd site?
         while cur is not None:
-            if circle.low.x >= cur.breakl and circle.low.x <= cur.breakr:
-                if fabs(
-                    fabs(
-                        circle.low.x) -
-                    fabs(
-                        cur.breakl)) > .0025 and fabs(
-                    fabs(
-                        circle.low.x) -
-                    fabs(
-                        cur.breakr)) > .0025:
-                    return cur
-                else:
-                    arcs = {}
-                    dist = fabs(cur.breakl - cur.breakr)
-                    arcs[dist] = cur
-                    if cur.prev and cur.prev.x != cur.prev.breakl and cur.prev.x != cur.prev.breakr:
-                        dist = fabs(cur.prev.breakl - cur.prev.breakr)
-                        arcs[dist] = cur.prev
-                    if cur.next and cur.next.x != cur.next.breakl and cur.next.x != cur.next.breakr:
-                        dist = fabs(cur.next.breakl - cur.next.breakr)
-                        arcs[dist] = cur.next
+            if circle.c.x >= cur.breakl and circle.c.x <= cur.breakr:
+                print("ah")
+                print(fabs(circle.c.x) - fabs(cur.breakr))
+                print(fabs(circle.c.x) - fabs(cur.breakl))
+                return cur
+                # if fabs(
+                #     fabs(
+                #         circle.c.x) -
+                #     fabs(
+                #         cur.breakl)) > .005 and fabs(
+                #     fabs(
+                #         circle.c.x) -
+                #     fabs(
+                #         cur.breakr)) > .005:
+                #     print("yo")
+                #     return cur
+                # else:
+                #     print("ah")
+                #     print(fabs(circle.c.x) - fabs(cur.breakr))
+                #     print(fabs(circle.c.x) - fabs(cur.breakl))
+                #     arcs = {}
+                #     dist = fabs(cur.breakl - cur.breakr)
+                #     arcs[dist] = cur
+                #     if cur.prev and cur.prev.x != cur.prev.breakl and cur.prev.x != cur.prev.breakr:
+                #         dist = fabs(cur.prev.breakl - cur.prev.breakr)
+                #         arcs[dist] = cur.prev
+                #     if cur.next and cur.next.x != cur.next.breakl and cur.next.x != cur.next.breakr:
+                #         dist = fabs(cur.next.breakl - cur.next.breakr)
+                #         arcs[dist] = cur.next
 
-                    mindist = min(arcs.keys())
-                    return arcs[mindist]
+                #     mindist = min(arcs.keys())
+                #     return arcs[mindist]
             else:
                 cur = cur.next
 
-        # while cur is not None:
-        #     if circle.low.x >= cur.breakl and circle.low.x <= cur.breakr:
-        #         if fabs(
-        #             fabs(
-        #                 circle.low.x) -
-        #             fabs(
-        #                 cur.breakl)) > .005 and fabs(
-        #             fabs(
-        #                 circle.low.x) -
-        #             fabs(
-        #                 cur.breakr)) > .005:
-        #             return cur
-        #         else:
-        #             arcs = {}
-        #             dist = fabs(cur.breakl - cur.breakr)
-        #             arcs[dist] = cur
-        #             if cur.prev and cur.prev.x != cur.prev.breakl and cur.prev.x != cur.prev.breakr:
-        #                 dist = fabs(cur.prev.breakl - cur.prev.breakr)
-        #                 arcs[dist] = cur.prev
-        #             if cur.next and cur.next.x != cur.next.breakl and cur.next.x != cur.next.breakr:
-        #                 dist = fabs(cur.next.breakl - cur.next.breakr)
-        #                 arcs[dist] = cur.next
-
-        #             mindist = min(arcs.keys())
-        #             return arcs[mindist]
-        #     else:
-        #         cur = cur.next
-
     def getHead(self):
         return self.head
+
+    def beachfrontData(self):
+        self.update(self.head)
+        beachfronts = []
+        ptr = self.head
+        while ptr is not None:
+            b = ptr.beach.beachData(ptr.breakl, ptr.breakr)
+            if b:
+                beachfronts.append(b)
+            ptr = ptr.next
+        return beachfronts
 
     def toBuffer(self):
         self.update(self.head)

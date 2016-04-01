@@ -124,20 +124,45 @@ class Circle:
         else:
             return False
 
-    def __init__(self, s1, s2, s3, sweepline):
-        self.s1 = s1
-        self.s2 = s2
-        self.s3 = s3
+    # def __init__(self, s1, s2, s3, sweepline):
+    #     self.s1 = s1
+    #     self.s2 = s2
+    #     self.s3 = s3
+    #     self.asap = False
+    #     self.set_eqn()
+    #     self.above_sweepline(sweepline)
+    #     if self.low is not None:
+    #         self.y = self.low.y
+
+    def __init__(self, arc):
+        self.arc = arc
+        arc.circle = self
+        self.s1 = arc.prev.beach.focus
+        self.s2 = arc.beach.focus
+        self.s3 = arc.next.beach.focus
+        sweepline = arc.beach.directrix
         self.asap = False
         self.set_eqn()
         self.above_sweepline(sweepline)
         if self.low is not None:
             self.y = self.low.y
+        self.update(sweepline)
 
 
     def __str__(self):
         return "cx:{}, cy:{}, clow:{}".format(
             self.c.x, self.c.y, self.csites(), self.low)
+
+    def circleData(self):
+        buf = []
+        radius = self.r
+        sides = self.smoothness
+        for side in range(0, sides):
+            ang = float(side) * 2.0 * pi / sides
+            x = cos(ang) * radius + self.c.x
+            y = sin(ang) * radius + self.c.y
+            buf.append([x, y])
+        return buf
 
     def toBuffer(self):
         buf = []

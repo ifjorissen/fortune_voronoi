@@ -103,10 +103,13 @@ class vertex:
     # (Creates and) initializes a new vertex at position P as part of
     # object o.
     #
-    def __init__(self, P, o):
+    def __init__(self, P, o, id_prefix=None):
         self.position = P
         self.edge = None
-        self.id = len(o.vertex)
+        if id_prefix is not None:
+            self.id = str(id_prefix) + "_" + str(len(o.vertex))
+        else:
+            self.id = len(o.vertex)
         o.vertex.append(self)
         self.vn = None
 
@@ -298,7 +301,7 @@ class face:
     #   * id: integer id identifying this vertex
     #   * o: object that this is part of
     #
-    def __init__(self, V1, V2, V3, o):
+    def __init__(self, V1, V2, V3, o, id_prefix=None):
 
         e1 = edge(V1, V2, self, o)
         e2 = edge(V2, V3, self, o)
@@ -309,7 +312,10 @@ class face:
         e3.next = e1
 
         self.side = e1
-        self.id = len(o.face)
+        if id_prefix is not None:
+            self.id = str(id_prefix) + "_" + str(len(o.face))
+        else:
+            self.id = len(o.face)
         o.face.append(self)
         self.fn = None
 

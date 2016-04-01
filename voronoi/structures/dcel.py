@@ -11,6 +11,7 @@ class Vertex():
     def __init__(self, circle, o):
         if circle:
             self.position = circle.c
+            self.circle_radius = circle.r
             self.sites = circle.csites()
         else:
             self.position = point(float('inf'), float('inf'), float('inf'))
@@ -51,7 +52,7 @@ class Edge():
         self.next = None
         self.prev = None
         self.source = source
-        self.clip_epsilon = .25
+        self.clip_epsilon = .15
 
         # for use in edge clipping
         self.angle = self.angle()
@@ -434,6 +435,8 @@ class VoronoiDCEL():
         edges = []
         colors = []
         for edge in self.edges.values():
+            if edge.e1 is None or edge.e2 is None:
+                print("ERROR: edge {}".format(edge))
             edges.extend(edge.e1.components())
             edges.extend(edge.e2.components())
             colors.extend(edge.s1.c.components())

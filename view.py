@@ -329,6 +329,11 @@ def keypress(key, x, y):
         control = not control
         glutPostRedisplay()
 
+    #write the current state to files
+    if key == b'w':
+        V.scanning = False
+        V.writeState()
+
 
 def mouse(button, state, x, y):
     global ctl_pts, ctl_pts_color, site_array, color_array, V

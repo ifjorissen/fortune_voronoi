@@ -15,7 +15,7 @@ logger = logging.getLogger('voronoi')
 
 
 class Voronoi:
-    def __init__(self, view=True):
+    def __init__(self, view=True, id_prefix=None):
         self.view = view
         self.scanning = False
         self.sites = []
@@ -27,7 +27,8 @@ class Voronoi:
         self.circles = []
         self.vvertices = []
         self.handled_circles = []
-        self.delaunay = Delaunay(self)
+        self.delaunay = Delaunay(self, id_prefix=id_prefix)
+        self.id_prefix = id_prefix
         self.edgeDCEL = VoronoiDCEL()
         self.view_bounds = {"xmin": -1.0, "xmax": 1.0, "ymin": -1.0, "ymax": 1.0} 
         self.bounds = {"xmin": -1.0, "xmax": 1.0, "ymin": -1.0, "ymax": 1.0}
@@ -95,6 +96,38 @@ class Voronoi:
             site_str += "{} {}\n".format(site.x, site.y)
         return site_str
 
+    def rawCircleData(self):
+        circle_str = "#circle.x circle.y radius\n"
+        for circle in self.circles:
+            data = circle.circleData()
+            circle_str += "#circle.x: {} circle.y: {} radius: {}\n".format(circle.c.x, circle.c.y, circle.r)
+            for d in data:
+                circle_str += "{} {}\n".format(d[0], d[1])
+            circle_str += "\n"
+        return circle_str
+
+    def rawBeachfrontData(self):
+        beachfronts = self.beachline.beachfrontData()
+        beach_str = "#bp1.x bp1.y\n"
+        # print(beachfronts)
+        print(len(beachfronts))
+        for beach in beachfronts:
+            beach_str += "\n#beach bl ~{} br~{}\n".format(beach[0], beach[-1])
+            for point in beach:
+                beach_str += "{} {}\n".format(point[0], point[1])
+        return beach_str
+
+    def rawScanlineData(self):
+        scanline_data = self.scanline.scanData()
+        scan_str = "#scan.y scan.y\n"
+        # scan_str += "{} {}\n{} {}\n\n".format(scanline.e1.x, scanline.y, scanline.e2.x, scanline.y)
+        for point in scanline_data:
+            scan_str += "{} {}\n".format(point[0], point[1])
+        return scan_str
+
+    def rawDelData(self):
+        return self.delaunay.edgeData()
+
     def outputVoronoi(self):
         ''' writes the results of the voronoi diagram to results/voronoi.txt '''
         if(self.validateDCEL()):
@@ -103,6 +136,7 @@ class Voronoi:
             edgeLinks = self.edgeDCEL.printEdgeLinks()
             edgeGeo = self.edgeDCEL.printEdgeGeo()
             cells = self.edgeDCEL.printCells()
+            # delaunay = self.delaunay.printEdges()
             f.write("\n----**** voronoi results ****----")
             f.write("\n\tThere are {} sites, {} vertices, {} edges\n".format(len(
                 self.sites), len(self.vvertices) + 1, len(self.edgeDCEL.edges.items()) / 2.0))
@@ -122,14 +156,48 @@ class Voronoi:
         fverts = open('results/vertices.dat', 'w')
         fedges = open('results/edges.dat', 'w')
         fsites = open('results/sites.dat', 'w')
+        fdel = open('results/del.dat', 'w')
+        fdel_ghost = open('results/del_ghost.dat', 'w')
         edges = self.rawEdgeData()
         vertices = self.rawVertData()
         sites = self.rawSiteData()
+        del_edges, del_ghost = self.rawDelData()
         fverts.write(vertices)
         fedges.write(edges)
         fsites.write(sites)
+        fdel.write(del_edges)
+        fdel_ghost.write(del_ghost)
         return self
 
+    def writeState(self):
+        '''
+        write the current state of the voronoi diagram to the appropriate files
+        (beachfront, circle events, sites, vertices, etc)
+        '''
+        scan_y = self.scanline.y
+
+        #make files
+        # fverts = open('results/vertices_{:.2}.dat'.format(scan_y), 'w')
+        # fedges = open('results/edges_{:.2}.dat'.format(scan_y), 'w')
+        fsites = open('results/sites_{:.2}.dat'.format(scan_y), 'w')
+        fscan = open('results/scan_{:.2}.dat'.format(scan_y), 'w')
+        fbeach = open('results/beach_{:.2}.dat'.format(scan_y), 'w')
+        fcircle = open('results/circles_{:.2}.dat'.format(scan_y), 'w')
+
+        #get data
+        # edges = self.rawEdgeData()
+        # vertices = self.rawVertData()
+        sites = self.rawSiteData()
+        scan = self.rawScanlineData()
+        circles = self.rawCircleData()
+        beachfront = self.rawBeachfrontData()
+
+        # fverts.write(vertices)
+        # fedges.write(edges)
+        fsites.write(sites)
+        fscan.write(scan)
+        fcircle.write(circles)
+        fbeach.write(beachfront)
 
     def edgesToBuffer(self):
         edges, cBuf = self.edgeDCEL.edgesToBuffer()
@@ -218,7 +286,6 @@ class Voronoi:
         event = self.event_pq.pop()
         process_str = ""
         self.scanline.y = event.y
-        self.beachline.update(self.beachline.getHead())
         if isinstance(event, Site):
             site = event
             process_str += "\nSite EVENT: \n\tsite event site{} @y = {}".format(
@@ -246,12 +313,13 @@ class Voronoi:
             circle = event
             process_str += "\nCircle EVENT: \n\tcircle event @(cx{}, cy{}), sy{}".format(
                 circle.c.x, circle.c.y, self.scanline.y)
-            arc = self.beachline.find_by_x(circle)
+            # arc = self.beachline.find_by_x(circle)
             self.vvertices.append(circle.c)
             self.delaunay.add_face(circle)
             self.edgeDCEL.handleCircle(circle)
 
-            asap_circles, new_circles, bad_circles = self.beachline.remove(arc)
+            # asap_circles, new_circles, bad_circles = self.beachline.remove(arc)
+            asap_circles, new_circles, bad_circles = self.beachline.remove(circle.arc)
             for c in bad_circles:
                 try:
                     for i in range(0, self.event_pq.count(c)):
@@ -275,6 +343,7 @@ class Voronoi:
                         process_str += "\n\tAdding this circle event {} @y{} to the queue".format(
                             c, c.y)
             self.handled_circles.append(circle)
+        self.beachline.update(self.beachline.getHead())
         logger.debug(process_str)
         # update all the new sites
         self.event_pq.sort(key=lambda site: site.y, reverse=False)
