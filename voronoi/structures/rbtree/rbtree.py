@@ -11,10 +11,8 @@ class LeafNode:
     def __init__(self):
         self.color = BLACK
 
-NIL = LeafNode()
-
 class Node:
-    def __init__(self, data, color=RED, left=NIL, right=NIL, parent=NIL):
+    def __init__(self, data, color=RED, left=None, right=None, parent=None):
         # tree info
         self.color = color
         self.left = left
@@ -39,12 +37,17 @@ class RBTree:
        contain the same number of black nodes
     '''
 
-    def __init__(self, root=NIL):
+    def __init__(self, root=None):
         '''
         initialize the empty tree with a single leaf node,
         satisfying the property that the root is black and the leaf is black
         '''
-        self.root = root
+        self.NIL = LeafNode()
+
+        if root:
+            self.root = root
+        else:
+            self.root = self.NIL
 
     def _right_rotate(self, node):
         '''
@@ -62,12 +65,12 @@ class RBTree:
         x = node.left  #b, in example above
         node.left =  x.right  #set a's left child to f
 
-        if x.right is not NIL:
+        if x.right is not self.NIL:
             x.right.parent = node  #update f's parent to a
 
         x.parent = node.parent #update b's parent to whatever a's parent was
 
-        if node.parent is NIL:  #case where the parent of node is NIL, indicating the root of the tree
+        if node.parent is self.NIL:  #case where the parent of node is self.NIL, indicating the root of the tree
             self.root = x
         elif node is node.parent.left:
             node.parent.left = x
@@ -91,12 +94,12 @@ class RBTree:
         x = node.right
         node.right = x.left
 
-        if x.left is not NIL:
+        if x.left is not self.NIL:
             x.left.parent = node
 
         x.parent = node.parent
 
-        if node.parent is NIL:
+        if node.parent is self.NIL:
             self.root = x
         elif node is node.parent.left:
             node.parent.left = x
@@ -173,7 +176,7 @@ class RBTree:
         '''
         given a node return the minimum node of that subtree
         '''
-        while node_a.left is not NIL:
+        while node_a.left is not self.NIL:
             node_a = node_a.left
         return node_a
 
@@ -181,7 +184,7 @@ class RBTree:
         '''
         given nodes a and b, make b the parent of a's subtree
         '''
-        if node_a.parent is NIL:
+        if node_a.parent is self.NIL:
             self.root = node_b
         elif node_a is node_a.parent.left:
             node_a.parent.left = node_b
@@ -199,13 +202,18 @@ class RBTree:
         prob_node = del_node #potentially problematic node, to be replaced by sol_node
         pn_col = prob_node.color
 
+        #removing the last node in the tree
+        if del_node is self.root and del_node.left is self.NIL and del_node.right is self.NIL:
+            self.root = self.NIL
+            print("removing the last node in the tree!")
+
         #(n)one child: move the subtree to the del_node.right to del_node
-        if del_node.left is NIL:
+        elif del_node.left is self.NIL:
             sol_node = del_node.right #solution node ==> will assume prob_node's position
             self._transplant(del_node, del_node.right)
 
         #(n)one child: move the subtree to the del_node.left to del_node    
-        elif del_node.right is NIL:
+        elif del_node.right is self.NIL:
             sol_node = del_node.left
             self._transplant(del_node, del_node.left)
 
@@ -230,7 +238,7 @@ class RBTree:
             prob_node.color = del_node.color
 
         #fixup if we removed a black node
-        if pn_col is BLACK:
+        if pn_col is BLACK and not self.is_empty():
             self._delete_fixup(sol_node)
 
     def _insert_fixup(self, new_node):
@@ -281,12 +289,12 @@ class RBTree:
         '''
         given a value, create a node and insert it as "usual"
         '''
-        parent = NIL
-        new_node = Node(data)
+        parent = self.NIL
+        new_node = Node(data, left=self.NIL, right=self.NIL, parent=self.NIL)
         cur = self.root
         
         # find the right location for this node
-        while cur is not NIL:
+        while cur is not self.NIL:
             parent = cur
             if new_node.data < cur.data:
                 cur = cur.left
@@ -294,7 +302,7 @@ class RBTree:
                 cur = cur.right
 
         #case where we are at the root
-        if parent is NIL:
+        if parent is self.NIL:
             self.root = new_node
 
         #other cases where we aren't at the root and need figure out whether 
@@ -316,7 +324,7 @@ class RBTree:
         if not root_node:
             root_node = self.root
         cur = root_node
-        while cur is not NIL:
+        while cur is not self.NIL:
             if cur.data is data:
                 return cur
             elif data < cur.data:
@@ -340,10 +348,13 @@ class RBTree:
         '''
         make sure this is a valid RB-tree
         '''
+        if self.is_empty():
+            return 0
+
         if not root_node:
             root_node = self.root
 
-        elif root_node is NIL:
+        elif root_node is self.NIL:
             return 1
 
         ln = root_node.left
@@ -360,7 +371,7 @@ class RBTree:
         rh = self.check_rb(rn)
 
         #make sure this is a valid binary search (sub)tree
-        if (ln is not NIL and ln.data > root_node.data) or (rn is not NIL and rn.data < root_node.data):
+        if (ln is not self.NIL and ln.data > root_node.data) or (rn is not self.NIL and rn.data < root_node.data):
             print("Invalid binary search tree")
             return 0
 
@@ -387,22 +398,26 @@ class RBTree:
         pass
 
     def inorder(self, root_node=None):
-        if not root_node:
-            root_node = self.root
-
-        elif root_node is NIL:
-            print("hmm")
+        if self.is_empty():
             return []
 
-        print(type(root_node))
-        print(root_node == NIL)
-        print(root_node is NIL)
-        print(root_node is self.root)
+        elif not root_node:
+            root_node = self.root
 
-        l_tree = self.inorder(root_node.left)
-        r_tree = self.inorder(root_node.right)
+        elif root_node is self.NIL:
+            return []
 
-        return l_tree + [root_node.data] + r_tree 
+        else:
+            l_tree = self.inorder(root_node.left)
+            r_tree = self.inorder(root_node.right)
+
+            return l_tree + [root_node.data] + r_tree 
+
+    def is_empty(self):
+        if self.root is self.NIL:
+            return True
+        else:
+            return False
 
     def postorder(self):
         pass
