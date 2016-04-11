@@ -11,6 +11,7 @@ from OpenGL.GL import *
 from OpenGL.GLUT import *
 from OpenGL.GLUT.freeglut import *
 from voronoi.voronoi import Voronoi
+from voronoi.structures.scanline import Scanline
 # from voronoi.delaunay import Delaunay
 # import numpy as np
 
@@ -49,6 +50,15 @@ del_edge_color_buffer = None
 
 line_shaders = None
 pt_shaders = None
+
+
+#constant arrays for the buffers
+site_array = []
+color_array = []
+
+#rework
+sites = []
+scanline = Scanline()
 
 
 xStart = 0
@@ -113,55 +123,88 @@ def draw():
 
     # * * * * * * * * * * * * * * * *
     # Draw the beachfront
-    shs = line_shaders
-    glUseProgram(shs)
-    glEnable(GL_LINE_SMOOTH)
-    if V.beachfrontSegments() and showBeachfront:
+    # shs = line_shaders
+    # glUseProgram(shs)
+    # glEnable(GL_LINE_SMOOTH)
+    # if V.beachfrontSegments() and showBeachfront:
+    #     glLineWidth(5)
+    #     colorAL = glGetAttribLocation(shs, 'a_color')
+    #     posAL = glGetAttribLocation(shs, 'a_position')
+
+    #     # # all the vertex positions
+    #     glBindBuffer(GL_ARRAY_BUFFER, beachfront_buffer)
+    #     glVertexAttribPointer(posAL, 3, GL_FLOAT, GL_FALSE, 0, None)
+    #     glEnableVertexAttribArray(posAL)
+
+    #     # # all the vertex colors
+    #     glBindBuffer(GL_ARRAY_BUFFER, beachfront_color_buffer)
+    #     glVertexAttribPointer(colorAL, 3, GL_FLOAT, GL_FALSE, 0, None)
+    #     glEnableVertexAttribArray(colorAL)
+    #     glDrawArrays(GL_LINE_STRIP, 0, V.beachfrontSegments())
+    #     glDisableVertexAttribArray(posAL)
+    #     glDisableVertexAttribArray(colorAL)
+
+    # * * * * * * * * * * * * * * * *
+    # Draw parabolas
+    glUseProgram(0)
+    if V.sites:
+        parabola_ctlpts = V.parabolasToBuffer()  
+        # glClear(GL_COLOR_BUFFER_BIT)
+
+        # glPushAttrib(GL_ALL_ATTRIB_BITS)
+        glColor3f(0.72, 0.32, 0)
         glLineWidth(5)
-        colorAL = glGetAttribLocation(shs, 'a_color')
-        posAL = glGetAttribLocation(shs, 'a_position')
+        glEnable(GL_LINE_SMOOTH)
+        for site in range(len(parabola_ctlpts)):
+            glMap1f(GL_MAP1_VERTEX_3, 0.0, 1.0, parabola_ctlpts[site])
+            glEnable(GL_MAP1_VERTEX_3);
+            glMapGrid1f(30,0,1);
+            glEvalMesh1(GL_LINE,0,30);
 
-        # # all the vertex positions
-        glBindBuffer(GL_ARRAY_BUFFER, beachfront_buffer)
-        glVertexAttribPointer(posAL, 3, GL_FLOAT, GL_FALSE, 0, None)
-        glEnableVertexAttribArray(posAL)
-
-        # # all the vertex colors
-        glBindBuffer(GL_ARRAY_BUFFER, beachfront_color_buffer)
-        glVertexAttribPointer(colorAL, 3, GL_FLOAT, GL_FALSE, 0, None)
-        glEnableVertexAttribArray(colorAL)
-        glDrawArrays(GL_LINE_STRIP, 0, V.beachfrontSegments())
-        glDisableVertexAttribArray(posAL)
-        glDisableVertexAttribArray(colorAL)
+        glDisable(GL_LINE_SMOOTH)
+    
+        glPointSize(10.0)
+        glColor3f(0.0, .4, 0.9)
+        glBegin(GL_POINTS)
+        for ctl_pt_set in parabola_ctlpts:
+            glVertex3fv(ctl_pt_set[0])
+            glVertex3fv(ctl_pt_set[1])
+            glVertex3fv(ctl_pt_set[2])
+        glEnd()
+        glFlush()
+        # glPopAttrib()
 
     # * * * * * * * * * * * * * * * *
     # Draw the circles
-    if V.circleSegments() and showCircles:
-        glLineWidth(3)
-        colorAL = glGetAttribLocation(shs, 'a_color')
-        posAL = glGetAttribLocation(shs, 'a_position')
+    # if V.circleSegments() and showCircles:
+    #     glLineWidth(3)
+    #     colorAL = glGetAttribLocation(shs, 'a_color')
+    #     posAL = glGetAttribLocation(shs, 'a_position')
 
-        # # all the vertex positions
-        glBindBuffer(GL_ARRAY_BUFFER, circle_buffer)
-        glVertexAttribPointer(posAL, 3, GL_FLOAT, GL_FALSE, 0, None)
-        glEnableVertexAttribArray(posAL)
+    #     # # all the vertex positions
+    #     glBindBuffer(GL_ARRAY_BUFFER, circle_buffer)
+    #     glVertexAttribPointer(posAL, 3, GL_FLOAT, GL_FALSE, 0, None)
+    #     glEnableVertexAttribArray(posAL)
 
-        # # all the vertex colors
-        glBindBuffer(GL_ARRAY_BUFFER, circle_color_buffer)
-        glVertexAttribPointer(colorAL, 3, GL_FLOAT, GL_FALSE, 0, None)
-        glEnableVertexAttribArray(colorAL)
-        for i in range(0, len(V.circles)):
-            glDrawArrays(
-                GL_LINE_LOOP,
-                V.circles[0].smoothness * i,
-                V.circles[0].smoothness)
-        glDisableVertexAttribArray(posAL)
-        glDisableVertexAttribArray(colorAL)
-    glDisable(GL_LINE_SMOOTH)
+    #     # # all the vertex colors
+    #     glBindBuffer(GL_ARRAY_BUFFER, circle_color_buffer)
+    #     glVertexAttribPointer(colorAL, 3, GL_FLOAT, GL_FALSE, 0, None)
+    #     glEnableVertexAttribArray(colorAL)
+    #     for i in range(0, len(V.circles)):
+    #         glDrawArrays(
+    #             GL_LINE_LOOP,
+    #             V.circles[0].smoothness * i,
+    #             V.circles[0].smoothness)
+    #     glDisableVertexAttribArray(posAL)
+    #     glDisableVertexAttribArray(colorAL)
+    # glDisable(GL_LINE_SMOOTH)
+    # glutSwapBuffers()
 
-    # * * * * * * * * * * * * * * * *
-    # Draw all the voronoi ctl sites.
-    if V.sites:
+    # # * * * * * * * * * * * * * * * *
+    # # Draw all the voronoi ctl sites.
+    if sites:
+        # print("ok there are Vsites: {}".format(V.sites))
+        # print("ok there are sites: {}".format(sites))
         shs = pt_shaders
         glUseProgram(shs)
         colorAL = glGetAttribLocation(shs, 'a_color')
@@ -179,18 +222,18 @@ def draw():
         glBindBuffer(GL_ARRAY_BUFFER, site_color_buffer)
         glVertexAttribPointer(colorAL, 3, GL_FLOAT, GL_FALSE, 0, None)
 
-        glDrawArrays(GL_POINTS, 0, len(V.sites))
+        glDrawArrays(GL_POINTS, 0, len(sites))
         glDisable(GL_POINT_SPRITE)
         glDisable(GL_VERTEX_PROGRAM_POINT_SIZE)
         glDisableVertexAttribArray(posAL)
         glDisableVertexAttribArray(colorAL)
 
-    # * * * * * * * * * * * * * * * *
-    # Draw the scanline
+    # # * * * * * * * * * * * * * * * *
+    # # Draw the scanline
     shs = line_shaders
     glUseProgram(shs)
     glEnable(GL_LINE_SMOOTH)
-    if V.scanStarted() and V.scanning and showBeachfront and not V.scanFinished():
+    if showBeachfront:
         glLineWidth(5)
         colorAL = glGetAttribLocation(shs, 'a_color')
         posAL = glGetAttribLocation(shs, 'a_position')
@@ -210,82 +253,82 @@ def draw():
         glDisableVertexAttribArray(colorAL)
     glDisable(GL_LINE_SMOOTH)
 
-    # * * * * * * * * * * * * * * * *
-    # Draw delaunay edges
-    if D.face and showDelaunay:
-        shs = line_shaders
-        glUseProgram(shs)
-        glLineWidth(3)
-        colorAL = glGetAttribLocation(shs, 'a_color')
-        posAL = glGetAttribLocation(shs, 'a_position')
+    # # * * * * * * * * * * * * * * * *
+    # # Draw delaunay edges
+    # if D.face and showDelaunay:
+    #     shs = line_shaders
+    #     glUseProgram(shs)
+    #     glLineWidth(3)
+    #     colorAL = glGetAttribLocation(shs, 'a_color')
+    #     posAL = glGetAttribLocation(shs, 'a_position')
 
-        # all the vertex positions
-        glEnableVertexAttribArray(posAL)
-        glBindBuffer(GL_ARRAY_BUFFER, del_edge_buffer)
-        glVertexAttribPointer(posAL, 3, GL_FLOAT, GL_FALSE, 0, None)
+    #     # all the vertex positions
+    #     glEnableVertexAttribArray(posAL)
+    #     glBindBuffer(GL_ARRAY_BUFFER, del_edge_buffer)
+    #     glVertexAttribPointer(posAL, 3, GL_FLOAT, GL_FALSE, 0, None)
 
-        # all the vertex colors
-        glEnableVertexAttribArray(colorAL)
-        glBindBuffer(GL_ARRAY_BUFFER, del_edge_color_buffer)
-        glVertexAttribPointer(colorAL, 3, GL_FLOAT, GL_FALSE, 0, None)
+    #     # all the vertex colors
+    #     glEnableVertexAttribArray(colorAL)
+    #     glBindBuffer(GL_ARRAY_BUFFER, del_edge_color_buffer)
+    #     glVertexAttribPointer(colorAL, 3, GL_FLOAT, GL_FALSE, 0, None)
 
-        for i in range(0, len(D.face)):
-            glDrawArrays(GL_LINE_LOOP, 3 * i, 3)
-        # glDrawArrays(GL_TRIANGLES, 0, len(D.face)*2)
-        glDisableVertexAttribArray(posAL)
-        glDisableVertexAttribArray(colorAL)
+    #     for i in range(0, len(D.face)):
+    #         glDrawArrays(GL_LINE_LOOP, 3 * i, 3)
+    #     # glDrawArrays(GL_TRIANGLES, 0, len(D.face)*2)
+    #     glDisableVertexAttribArray(posAL)
+    #     glDisableVertexAttribArray(colorAL)
 
-    # * * * * * * * * * * * * * * * *
-    # Draw voronoi edges
-    if V.scanFinished():
-        if not finished:
-            V.finishScan()
-            finished = True
-        shs = line_shaders
-        glUseProgram(shs)
-        glLineWidth(3)
-        colorAL = glGetAttribLocation(shs, 'a_color')
-        posAL = glGetAttribLocation(shs, 'a_position')
+    # # * * * * * * * * * * * * * * * *
+    # # Draw voronoi edges
+    # # if V:
+    # #     if not finished:
+    # #         V.finishScan()
+    # #         finished = True
+    # #     shs = line_shaders
+    # #     glUseProgram(shs)
+    # #     glLineWidth(3)
+    # #     colorAL = glGetAttribLocation(shs, 'a_color')
+    # #     posAL = glGetAttribLocation(shs, 'a_position')
 
-        # all the vertex positions
-        glEnableVertexAttribArray(posAL)
-        glBindBuffer(GL_ARRAY_BUFFER, vedge_buffer)
-        glVertexAttribPointer(posAL, 3, GL_FLOAT, GL_FALSE, 0, None)
+    # #     # all the vertex positions
+    # #     glEnableVertexAttribArray(posAL)
+    # #     glBindBuffer(GL_ARRAY_BUFFER, vedge_buffer)
+    # #     glVertexAttribPointer(posAL, 3, GL_FLOAT, GL_FALSE, 0, None)
 
-        # all the vertex colors
-        glEnableVertexAttribArray(colorAL)
-        glBindBuffer(GL_ARRAY_BUFFER, vedge_color_buffer)
-        glVertexAttribPointer(colorAL, 3, GL_FLOAT, GL_FALSE, 0, None)
+    # #     # all the vertex colors
+    # #     glEnableVertexAttribArray(colorAL)
+    # #     glBindBuffer(GL_ARRAY_BUFFER, vedge_color_buffer)
+    # #     glVertexAttribPointer(colorAL, 3, GL_FLOAT, GL_FALSE, 0, None)
 
-        glDrawArrays(GL_LINES, 0, len(V.edgeDCEL.edges) * 2)
-        glDisableVertexAttribArray(posAL)
-        glDisableVertexAttribArray(colorAL)
+    # #     glDrawArrays(GL_LINES, 0, len(V.edgeDCEL.edges) * 2)
+    # #     glDisableVertexAttribArray(posAL)
+    # #     glDisableVertexAttribArray(colorAL)
 
-    # * * * * * * * * * * * * * * * *
-    # Draw voronoi vertices
-    if V.vvertices:
-        shs = pt_shaders
-        glUseProgram(shs)
-        colorAL = glGetAttribLocation(shs, 'a_color')
-        posAL = glGetAttribLocation(shs, 'a_position')
+    # # * * * * * * * * * * * * * * * *
+    # # Draw voronoi vertices
+    # if V.vvertices:
+    #     shs = pt_shaders
+    #     glUseProgram(shs)
+    #     colorAL = glGetAttribLocation(shs, 'a_color')
+    #     posAL = glGetAttribLocation(shs, 'a_position')
 
-        # all the vertex positions
-        glEnable(GL_POINT_SPRITE)
-        glEnable(GL_VERTEX_PROGRAM_POINT_SIZE)
-        glEnableVertexAttribArray(posAL)
-        glBindBuffer(GL_ARRAY_BUFFER, vvertex_buffer)
-        glVertexAttribPointer(posAL, 3, GL_FLOAT, GL_FALSE, 0, None)
+    #     # all the vertex positions
+    #     glEnable(GL_POINT_SPRITE)
+    #     glEnable(GL_VERTEX_PROGRAM_POINT_SIZE)
+    #     glEnableVertexAttribArray(posAL)
+    #     glBindBuffer(GL_ARRAY_BUFFER, vvertex_buffer)
+    #     glVertexAttribPointer(posAL, 3, GL_FLOAT, GL_FALSE, 0, None)
 
-        # all the vertex colors
-        glEnableVertexAttribArray(colorAL)
-        glBindBuffer(GL_ARRAY_BUFFER, vvertex_color_buffer)
-        glVertexAttribPointer(colorAL, 3, GL_FLOAT, GL_FALSE, 0, None)
+    #     # all the vertex colors
+    #     glEnableVertexAttribArray(colorAL)
+    #     glBindBuffer(GL_ARRAY_BUFFER, vvertex_color_buffer)
+    #     glVertexAttribPointer(colorAL, 3, GL_FLOAT, GL_FALSE, 0, None)
 
-        glDrawArrays(GL_POINTS, 0, len(V.vvertices))
-        glDisable(GL_POINT_SPRITE)
-        glDisable(GL_VERTEX_PROGRAM_POINT_SIZE)
-        glDisableVertexAttribArray(posAL)
-        glDisableVertexAttribArray(colorAL)
+    #     glDrawArrays(GL_POINTS, 0, len(V.vvertices))
+    #     glDisable(GL_POINT_SPRITE)
+    #     glDisable(GL_VERTEX_PROGRAM_POINT_SIZE)
+    #     glDisableVertexAttribArray(posAL)
+    #     glDisableVertexAttribArray(colorAL)
 
     glPopMatrix()
 
@@ -305,10 +348,10 @@ def keypress(key, x, y):
 
     # Handle SPACE key.
     if key == b' ':
-        if V.scanStarted() is False:
-            V.startScan()
-        else:
-            V.scanning = not V.scanning
+        # if V.scanStarted() is False:
+        #     V.startScan()
+        # else:
+        #     V.scanning = not V.scanning
         tick(0)
 
     # hide circles
@@ -336,14 +379,17 @@ def keypress(key, x, y):
 
 
 def mouse(button, state, x, y):
-    global ctl_pts, ctl_pts_color, site_array, color_array, V
-    if not V.scanning and not V.scanStarted():
-        ctwpt = screenToWorldCoords(x, y)
-        if button == GLUT_LEFT_BUTTON and state == GLUT_DOWN:
-            color = choice(colors)
-            V.addSite(ctwpt, color)
-        update_site_buffers()
-        glutPostRedisplay()
+    global ctl_pts, ctl_pts_color, site_array, color_array, V, sites
+    # if not V.scanning and not V.scanStarted():
+    ctwpt = screenToWorldCoords(x, y)
+    if button == GLUT_LEFT_BUTTON and state == GLUT_DOWN:
+        color = choice(colors)
+        sites.append(ctwpt)
+        site_array.extend(ctwpt.components())
+        color_array.extend(color.components())
+        # V.addSite(ctwpt, color)
+    update_site_buffers()
+    glutPostRedisplay()
 
 
 def screenToWorldCoords(mousex, mousey):
@@ -356,7 +402,7 @@ def screenToWorldCoords(mousex, mousey):
 
 def update_site_buffers():
     global site_buffer, site_color_buffer
-    site_array, color_array = V.sitesToBuffer()
+    # site_array, color_array = V.sitesToBuffer()
 
     site_buffer = glGenBuffers(1)
     glBindBuffer(GL_ARRAY_BUFFER, site_buffer)
@@ -371,7 +417,8 @@ def update_site_buffers():
 
 def update_scanline_buffers():
     global scanline_buffer, scanline_color_buffer
-    scanline_array, color_array = V.scanline.toBuffer()
+    scanline_array, color_array = scanline.toBuffer()
+    print(scanline_array)
 
     scanline_buffer = glGenBuffers(1)
     glBindBuffer(GL_ARRAY_BUFFER, scanline_buffer)
@@ -481,40 +528,56 @@ def update_vedge_buffers():
 
 
 def tick(val):
-    global V
-    if V.scanning and not V.scanFinished():
-        if val:
-            val = not val
-            V.update()
-            update_scanline_buffers()
-            update_beachline_buffers()
-            update_circle_buffers()
-            update_vvertex_buffers()
-            update_delaunay_buffers()
-            glutPostRedisplay()
-            glutTimerFunc(8, tick, val)
-        else:
-            val = not val
-            V.update()
-            glutTimerFunc(8, tick, val)
+    global V, scanline
+    valid_sites = []
+    for site in sites:
+        if site.y > scanline.y:
+            valid_sites.append(site)
+    print("new voronoi with {}".format(valid_sites))
+    V = Voronoi(valid_sites, scanline.y)
+    V.precompute()
+    scanline.update()
+    update_scanline_buffers()
+    # update_beachline_buffers()
+    update_circle_buffers()
+    update_vvertex_buffers()
+    update_delaunay_buffers()
+    # update_vedge_buffers()
+    glutPostRedisplay()
+    glutTimerFunc(30, tick, val)
+    # if V.scanning and not V.scanFinished():
+        # if val:
+        #     val = not val
+        #     V.precompute()
+        #     update_scanline_buffers()
+        #     update_beachline_buffers()
+        #     update_circle_buffers()
+        #     update_vvertex_buffers()
+        #     update_delaunay_buffers()
+        #     glutPostRedisplay()
+        #     glutTimerFunc(8, tick, val)
+        # else:
+        #     val = not val
+        #     V.update()
+        #     glutTimerFunc(8, tick, val)
 
-    elif V.scanFinished():
-        # V.update()
-        V.scanning = False
-        update_vedge_buffers()
-        update_delaunay_buffers()
-        # glutTimerFunc(10, tick, 0)
-        glutPostRedisplay()
+    # elif V.scanFinished():
+    #     # V.update()
+    #     V.scanning = False
+    #     update_vedge_buffers()
+    #     update_delaunay_buffers()
+    #     # glutTimerFunc(10, tick, 0)
+    #     glutPostRedisplay()
 
-    else:
-        V.scanning = False
-        # update_beachline_buffers()
-        glutTimerFunc(10, tick, 0)
+    # else:
+    #     V.scanning = False
+    #     # update_beachline_buffers()
+    #     glutTimerFunc(10, tick, 0)
 
 
 def init():
     global V, D
-    V = Voronoi(view=True)
+    V = Voronoi(sites, scanline.y, view=True)
     D = V.delaunay
     global line_shaders, pt_shaders
     line_shaders = init_shaders('shaders/vert_shader.glsl',
@@ -522,7 +585,7 @@ def init():
 
     pt_shaders = init_shaders('shaders/vertpt_shader.glsl',
                               'shaders/fragpt_shader.glsl')
-
+    update_scanline_buffers()
 
 def resize(w, h):
     """ Register a window resize by changing the viewport.  """
@@ -552,6 +615,14 @@ def main():
     glutInitWindowPosition(0, 20)
     glutInitWindowSize(width, height)
     glutCreateWindow('view.py - Press ESC to quit')
+    glClearColor( 0, 0, 0, 0)
+    # glClearColor(.75,.75,.75,1)
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
+    glDisable(GL_LIGHTING)
+    glEnable(GL_AUTO_NORMAL)
+    glEnable(GL_DEPTH_TEST)
+    glEnable(GL_NORMALIZE)
+    # glEnable(GL_MAP1_VERTEX_3)
 
     # Initialize the object viewer's state.
     init()

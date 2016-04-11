@@ -201,10 +201,15 @@ class VoronoiDCEL():
         v = Vertex(circle, self)
         return v
 
+    def addEdge(self, left_site, right_site, src=None):
+        edge = Edge(left_site, right_site, src, self)
+        return edge
+
     def addOutgoingEdges(self, v):
         s1 = v.sites[0]
         s2 = v.sites[1]
         s3 = v.sites[2]
+        print(type(s1))
         e1 = Edge(s1, s2, v, self)
         e2 = Edge(s2, s3, v, self)
         e3 = Edge(s3, s1, v, self)
@@ -366,60 +371,60 @@ class VoronoiDCEL():
             if vertex is not self.infv:
                 self.addOutgoingEdges(vertex)
 
-        for vertex in self.vertices:
-            if vertex is not self.infv:
-                for i, edge in enumerate(vertex.outgoing_edges):
-                    finish_str += "\n{} vertex {} edge{} edge.angle {}".format(
-                        i, vertex, edge, edge.angle)
-                    try:
-                        etwin = self.edges[(edge.s2, edge.s1)]
-                    except:
-                        etwin = Edge(edge.s2, edge.s1, self.infv, self)
-                    edge.twin = etwin
-                    etwin.twin = edge
-                    # set edges prev and next
-                    if i < len(vertex.outgoing_edges) - 1:
-                        etwin.next = vertex.outgoing_edges[i + 1]
-                        vertex.outgoing_edges[i + 1].prev = etwin
-                    else:
-                        etwin.next = vertex.outgoing_edges[0]
-                        vertex.outgoing_edges[0].prev = etwin
-                    if edge.twin.next:
-                        finish_str += "\n\tRESULT for {} vertex {}: edge: {} edge.twin {} edge.twin.next{} edge.twin.prev: {}".format(
-                            i, vertex, edge, edge.twin, edge.twin.next, edge.twin.prev)
-                    else:
-                        finish_str += "\n\tRESULT for {} vertex {}: edge: {} edge.twin {} edge.twin.prev: {}".format(
-                            i, vertex, edge, edge.twin, edge.twin.prev)
+        # for vertex in self.vertices:
+        #     if vertex is not self.infv:
+        #         for i, edge in enumerate(vertex.outgoing_edges):
+        #             finish_str += "\n{} vertex {} edge{} edge.angle {}".format(
+        #                 i, vertex, edge, edge.angle)
+        #             try:
+        #                 etwin = self.edges[(edge.s2, edge.s1)]
+        #             except:
+        #                 etwin = Edge(edge.s2, edge.s1, self.infv, self)
+        #             edge.twin = etwin
+        #             etwin.twin = edge
+        #             # set edges prev and next
+        #             if i < len(vertex.outgoing_edges) - 1:
+        #                 etwin.next = vertex.outgoing_edges[i + 1]
+        #                 vertex.outgoing_edges[i + 1].prev = etwin
+        #             else:
+        #                 etwin.next = vertex.outgoing_edges[0]
+        #                 vertex.outgoing_edges[0].prev = etwin
+        #             if edge.twin.next:
+        #                 finish_str += "\n\tRESULT for {} vertex {}: edge: {} edge.twin {} edge.twin.next{} edge.twin.prev: {}".format(
+        #                     i, vertex, edge, edge.twin, edge.twin.next, edge.twin.prev)
+        #             else:
+        #                 finish_str += "\n\tRESULT for {} vertex {}: edge: {} edge.twin {} edge.twin.prev: {}".format(
+        #                     i, vertex, edge, edge.twin, edge.twin.prev)
 
-        # now handle the infinite vertex
-        finish_str += "\nSorting edges on infinite vertex ... "
-        finish_str += "\nPre sort for self.inf {}\n".format(self.infv)
-        finish_str += str([(str(edge), str(edge.angle), str(edge.twin.angle))
-                           for edge in self.infv.outgoing_edges])
+        # # now handle the infinite vertex
+        # finish_str += "\nSorting edges on infinite vertex ... "
+        # finish_str += "\nPre sort for self.inf {}\n".format(self.infv)
+        # finish_str += str([(str(edge), str(edge.angle), str(edge.twin.angle))
+        #                    for edge in self.infv.outgoing_edges])
 
-        self.infv.sortTwinEdges()
+        # self.infv.sortTwinEdges()
 
-        finish_str += "\nPost sort for self.infv {}".format(self.infv)
-        finish_str += str([(str(edge), str(edge.angle), str(edge.twin.angle))
-                           for edge in self.infv.outgoing_edges])
-        for i, edge in enumerate(self.infv.outgoing_edges):
-            finish_str += "\n{} vertex {} edge{} edge.angle {}".format(
-                i, self.infv, edge, edge.angle)
-            if i < len(self.infv.outgoing_edges) - 1:
-                edge.twin.next = self.infv.outgoing_edges[i + 1]
-                self.infv.outgoing_edges[i + 1].prev = edge.twin
-            else:
-                edge.twin.next = self.infv.outgoing_edges[0]
-                self.infv.outgoing_edges[0].prev = edge.twin
-            if edge.twin.next:
-                finish_str += "\n\tRESULT for {} vertex {}: edge: {} edge.twin {} edge.twin.next{} edge.twin.prev: {}".format(
-                    i, vertex, edge, edge.twin, edge.twin.next, edge.twin.prev)
-            else:
-                finish_str += "\n\tRESULT for {} vertex {}: edge: {} edge.twin {} edge.twin.prev: {}".format(
-                    i, vertex, edge, edge.twin, edge.twin.prev)
-        # print("----**** done with voronoi finish ****----")
-        finish_str += "\n----**** done with voronoi finish ****----"
-        log.debug(finish_str)
+        # finish_str += "\nPost sort for self.infv {}".format(self.infv)
+        # finish_str += str([(str(edge), str(edge.angle), str(edge.twin.angle))
+        #                    for edge in self.infv.outgoing_edges])
+        # for i, edge in enumerate(self.infv.outgoing_edges):
+        #     finish_str += "\n{} vertex {} edge{} edge.angle {}".format(
+        #         i, self.infv, edge, edge.angle)
+        #     if i < len(self.infv.outgoing_edges) - 1:
+        #         edge.twin.next = self.infv.outgoing_edges[i + 1]
+        #         self.infv.outgoing_edges[i + 1].prev = edge.twin
+        #     else:
+        #         edge.twin.next = self.infv.outgoing_edges[0]
+        #         self.infv.outgoing_edges[0].prev = edge.twin
+        #     if edge.twin.next:
+        #         finish_str += "\n\tRESULT for {} vertex {}: edge: {} edge.twin {} edge.twin.next{} edge.twin.prev: {}".format(
+        #             i, vertex, edge, edge.twin, edge.twin.next, edge.twin.prev)
+        #     else:
+        #         finish_str += "\n\tRESULT for {} vertex {}: edge: {} edge.twin {} edge.twin.prev: {}".format(
+        #             i, vertex, edge, edge.twin, edge.twin.prev)
+        # # print("----**** done with voronoi finish ****----")
+        # finish_str += "\n----**** done with voronoi finish ****----"
+        # log.debug(finish_str)
 
         # self.createCells()
         self.clipEdges()

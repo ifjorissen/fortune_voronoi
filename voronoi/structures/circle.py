@@ -20,18 +20,6 @@ class CircleAboveSweepline(Exception):
         return repr([str(site) for site in self.sites] + " " +\
             "c.low: {} scanline.y: {}".format(self.y, self.sweep))
 
-
-class NotEmptyCircle(Exception):
-
-    def __init__(self, sites, included):
-        self.sites = sites
-        self.included = included
-
-    def __str__(self):
-        return repr([str(site) for site in self.sites]) + " " + \
-            repr([str(site) for site in self.included])
-
-
 class CircleAlreadyCreated(Exception):
 
     def __init__(self, circle):
@@ -49,36 +37,36 @@ class Circle:
     sites = []
 
     # should probably be a class method
-    def already_created(self):
-        if set(self.csites()) in self.created_circles:
-            raise CircleAlreadyCreated(self)
-            return True
-        else:
-            self.created_circles.append(set(self.csites()))
-            return False
+    # def already_created(self):
+    #     if set(self.csites()) in self.created_circles:
+    #         raise CircleAlreadyCreated(self)
+    #         return True
+    #     else:
+    #         self.created_circles.append(set(self.csites()))
+    #         return False
 
-    def equals(self, circle):
-        uncommon_sites = set(
-            self.csites()).symmetric_difference(circle.csites())
-        if len(uncommon_sites) > 0:
-            return False
-        else:
-            return True
+    # def equals(self, circle):
+    #     uncommon_sites = set(
+    #         self.csites()).symmetric_difference(circle.csites())
+    #     if len(uncommon_sites) > 0:
+    #         return False
+    #     else:
+    #         return True
 
-    def _is_empty(self):
-        included = []
-        # check to make sure the circle is empty
-        for site in Circle.sites:
-            if site not in self.csites():
-                square_dist = (self.c.x - site.x) ** 2 + \
-                    (self.c.y - site.y) ** 2
-                if square_dist <= self.r ** 2:
-                    included.append(str(site))
-        if len(included) > 0:
-            raise NotEmptyCircle(self.csites(), included)
-        else:
-            # this is a valid circle
-            return True
+    # def _is_empty(self):
+    #     included = []
+    #     # check to make sure the circle is empty
+    #     for site in Circle.sites:
+    #         if site not in self.csites():
+    #             square_dist = (self.c.x - site.x) ** 2 + \
+    #                 (self.c.y - site.y) ** 2
+    #             if square_dist <= self.r ** 2:
+    #                 included.append(str(site))
+    #     if len(included) > 0:
+    #         raise NotEmptyCircle(self.csites(), included)
+    #     else:
+    #         # this is a valid circle
+    #         return True
 
     def _get_center(self):
         '''returns the center of the circle, if it exists'''
@@ -118,8 +106,8 @@ class Circle:
 
     def above_sweepline(self, sweepline):
         if (self.low.y > sweepline.y):
-            self.asap = True
-            # raise CircleAboveSweepline(self, sweepline)
+            # self.asap = True
+            raise CircleAboveSweepline(self, sweepline)
             return True
         else:
             return False

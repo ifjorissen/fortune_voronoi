@@ -17,6 +17,8 @@ def test_rb():
   print(order)
   res = tree.check_rb()
   print("RB Height (invalid if 0): {}\n".format(res))
+  node = tree.search_val(3.5)
+  print(node)
 
 
   tree.remove(1)
@@ -48,6 +50,10 @@ def test_rb():
   print(order)
   res = tree.check_rb()
   print("RB Height (invalid if 0): {}\n".format(res))
+
+  node = tree.search_val(3.5)
+  print(node)
+
 
   tree.remove(4)
   order = tree.inorder()

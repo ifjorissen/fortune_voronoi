@@ -2,14 +2,14 @@
 #3.10.16
 #red black tree
 
-
 #constants
 RED = "RED"
 BLACK = "BLACK"
 
 class LeafNode:
-    def __init__(self):
+    def __init__(self, data = None):
         self.color = BLACK
+        self = None
 
 class Node:
     def __init__(self, data, color=RED, left=None, right=None, parent=None):
@@ -26,6 +26,25 @@ class Node:
         return "data:{}; color:{};".format(self.data, self.color)
 
 
+    def __lt__(self, other):
+        if self.data < other.data:
+            return True
+        else:
+            return False
+
+    def __gt__(self, other):
+        if self.data > other.data:
+            return True
+        else:
+            return False
+
+    def __eq__(self, other):
+        if self.data == other.data:
+            return True
+        else:
+            return False
+
+
 class RBTree:
     '''
     rules of the game:
@@ -37,12 +56,15 @@ class RBTree:
        contain the same number of black nodes
     '''
 
-    def __init__(self, root=None):
+    def __init__(self, root=None, create_node=Node):
         '''
         initialize the empty tree with a single leaf node,
         satisfying the property that the root is black and the leaf is black
         '''
-        self.NIL = LeafNode()
+        # print("hi")
+        # print(create_node)
+        self.create_node = create_node
+        self.NIL = create_node(None, BLACK)
 
         if root:
             self.root = root
@@ -60,9 +82,9 @@ class RBTree:
          [e,b,f,a,c]         [e,b,f,a,c]
         '''
 
-        print("right rotation")
+        # print("right rotation")
 
-        x = node.left  #b, in example above
+        x = node.left  #b, in example
         node.left =  x.right  #set a's left child to f
 
         if x.right is not self.NIL:
@@ -90,7 +112,7 @@ class RBTree:
 
          [e,b,f,a,c]         [e,b,f,a,c]
         '''
-        print("left rotation")
+        # print("left rotation")
         x = node.right
         node.right = x.left
 
@@ -290,13 +312,18 @@ class RBTree:
         given a value, create a node and insert it as "usual"
         '''
         parent = self.NIL
-        new_node = Node(data, left=self.NIL, right=self.NIL, parent=self.NIL)
-        cur = self.root
+        new_node = self.create_node(data, color=RED, left=self.NIL, right=self.NIL, parent=self.NIL, next=self.NIL, prev=self.NIL)
+        # print("creating a new node with data type {} and node type: {}".format(type(data), type(new_node)))
+        # print(new_node)
+        if not root_node:
+            cur = self.root
+        else:
+            cur = root_node
         
         # find the right location for this node
         while cur is not self.NIL:
             parent = cur
-            if new_node.data < cur.data:
+            if new_node < cur:
                 cur = cur.left
             else:
                 cur = cur.right
@@ -307,7 +334,7 @@ class RBTree:
 
         #other cases where we aren't at the root and need figure out whether 
         #new_node is left or right child
-        elif new_node.data < parent.data:
+        elif new_node < parent:
             parent.left = new_node
         else:
             parent.right = new_node
@@ -316,22 +343,52 @@ class RBTree:
 
         #now fix everything up & restore red black properties
         self._insert_fixup(new_node)
+        return new_node
 
     def search(self, data, root_node=None):
         '''
-        given a value return that node
+        given a value try to return the node with that value
         '''
         if not root_node:
             root_node = self.root
         cur = root_node
         while cur is not self.NIL:
-            if cur.data is data:
+            if cur is data:
                 return cur
-            elif data < cur.data:
+            elif data < cur:
                 cur = cur.left
             else:
                 cur = cur.right
-        return None
+        return self.NIL
+
+
+    def search_val(self, val, root_node=None):
+        '''
+        particular to the beachfront implementation, kind of
+        given a value, return the internal node whose breakpoint is as close
+        as possible (and less than) this value
+        '''
+        if self.is_empty():
+            return self.NIL
+
+        if not root_node:
+            root_node = self.root
+
+        if val < root_node:
+            if root_node.left is not self.NIL:
+                return self.search_val(val, root_node.left)
+            else:
+                return root_node
+
+        elif val > root_node: 
+            if root_node.right is not self.NIL:
+                return self.search_val(val, root_node.right)
+            else:
+                return root_node
+        else:
+            return root_node
+
+
 
     def remove(self, data, root_node=None):
         if not root_node:
@@ -371,7 +428,7 @@ class RBTree:
         rh = self.check_rb(rn)
 
         #make sure this is a valid binary search (sub)tree
-        if (ln is not self.NIL and ln.data > root_node.data) or (rn is not self.NIL and rn.data < root_node.data):
+        if (ln is not self.NIL and ln > root_node) or (rn is not self.NIL and rn < root_node):
             print("Invalid binary search tree")
             return 0
 
@@ -389,6 +446,14 @@ class RBTree:
         else:
             return 0
 
+    #for ease of use
+    def left_sibling(self, left_node):
+        pass
+
+    def right_sibling(self, left_node):
+        pass
+
+
 
     #presentation & info funcs
     def count_internal_nodes(self):
@@ -401,17 +466,16 @@ class RBTree:
         if self.is_empty():
             return []
 
-        elif not root_node:
+        if not root_node:
             root_node = self.root
 
-        elif root_node is self.NIL:
+        if root_node is self.NIL:
             return []
-
         else:
             l_tree = self.inorder(root_node.left)
             r_tree = self.inorder(root_node.right)
 
-            return l_tree + [root_node.data] + r_tree 
+            return l_tree + [root_node] + r_tree 
 
     def is_empty(self):
         if self.root is self.NIL:

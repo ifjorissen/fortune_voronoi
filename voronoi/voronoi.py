@@ -1,38 +1,56 @@
-from .geom.geometry import point, vector
-from .geom.constants import EPSILON
-from .structures.scanline import Scanline
-from .structures.v_site import Site
-from .structures.beach import Beach, BeachODBLL
-from .structures.circle import Circle
-from .delaunay import Delaunay
-from .structures.dcel import VoronoiDCEL
-from math import fabs
-# from random import choice
+#python lib imports
+from math import fabs, sqrt, isinf
+from queue import PriorityQueue as EventQueue
+
+#logging & logging config imports
 import logging
 import logging.config
 logging.config.fileConfig('logging.conf')
 logger = logging.getLogger('voronoi')
 
+#geometry imports
+from .geom.geometry import point, vector
+from .geom.constants import EPSILON
+
+#misc structures imports
+from .structures.circle import Circle
+# from .structures.scanline import Scanline
+from .structures.v_site import Site
+# from .structures.beach import Beach, BeachODBLL
+from .delaunay import Delaunay
+from .structures.dcel import VoronoiDCEL
+from .structures.rbtree.rbtree import RBTree as Beachfront
+from .structures.new_beach import BeachNode
+
+RED = "RED"
+BLACK = "BLACK"
 
 class Voronoi:
-    def __init__(self, view=True, id_prefix=None):
+    def __init__(self, sites, y_pos, view=True, id_prefix=None):
+        #pyopengl settings
         self.view = view
-        self.scanning = False
-        self.sites = []
-        self.event_pq = []
         self.site_buffer = []
         self.color_buffer = []
-        self.beaches = []
-        self.beachline = BeachODBLL()
+        self.view_bounds = {"xmin": -1.0, "xmax": 1.0, "ymin": -1.0, "ymax": 1.0} 
+
+        #structures & items
         self.circles = []
+        self.sites = []
+        self.event_pq = EventQueue()
+        self.beachfront = Beachfront(create_node=BeachNode)
         self.vvertices = []
-        self.handled_circles = []
+        self.handled_circles = set()
+        self.edgeDCEL = VoronoiDCEL()
+        self.createScanline()
+
+        #output and dual info
+        self.y_pos = y_pos
         self.delaunay = Delaunay(self, id_prefix=id_prefix)
         self.id_prefix = id_prefix
-        self.edgeDCEL = VoronoiDCEL()
-        self.view_bounds = {"xmin": -1.0, "xmax": 1.0, "ymin": -1.0, "ymax": 1.0} 
-        self.bounds = {"xmin": -1.0, "xmax": 1.0, "ymin": -1.0, "ymax": 1.0}
-        self.createScanline()
+
+        #initialize sites
+        for site in sites:
+            self.addSite(site)
 
     def setBounds(self):
         '''
@@ -107,7 +125,7 @@ class Voronoi:
         return circle_str
 
     def rawBeachfrontData(self):
-        beachfronts = self.beachline.beachfrontData()
+        beachfronts = self.beachfront.beachfrontData()
         beach_str = "#bp1.x bp1.y\n"
         # print(beachfronts)
         print(len(beachfronts))
@@ -118,12 +136,13 @@ class Voronoi:
         return beach_str
 
     def rawScanlineData(self):
-        scanline_data = self.scanline.scanData()
-        scan_str = "#scan.y scan.y\n"
-        # scan_str += "{} {}\n{} {}\n\n".format(scanline.e1.x, scanline.y, scanline.e2.x, scanline.y)
-        for point in scanline_data:
-            scan_str += "{} {}\n".format(point[0], point[1])
-        return scan_str
+        # scanline_data = self.scanline.scanData()
+        # scan_str = "#scan.y scan.y\n"
+        # # scan_str += "{} {}\n{} {}\n\n".format(scanline.e1.x, scanline.y, scanline.e2.x, scanline.y)
+        # for point in scanline_data:
+        #     scan_str += "{} {}\n".format(point[0], point[1])
+        # return scan_str
+        pass
 
     def rawDelData(self):
         return self.delaunay.edgeData()
@@ -174,28 +193,24 @@ class Voronoi:
         write the current state of the voronoi diagram to the appropriate files
         (beachfront, circle events, sites, vertices, etc)
         '''
-        scan_y = self.scanline.y
 
         #make files
         # fverts = open('results/vertices_{:.2}.dat'.format(scan_y), 'w')
         # fedges = open('results/edges_{:.2}.dat'.format(scan_y), 'w')
-        fsites = open('results/sites_{:.2}.dat'.format(scan_y), 'w')
-        fscan = open('results/scan_{:.2}.dat'.format(scan_y), 'w')
-        fbeach = open('results/beach_{:.2}.dat'.format(scan_y), 'w')
-        fcircle = open('results/circles_{:.2}.dat'.format(scan_y), 'w')
+        fsites = open('results/sites_{:.2}.dat'.format(self.y_pos), 'w')
+        fbeach = open('results/beach_{:.2}.dat'.format(self.y_pos), 'w')
+        fcircle = open('results/circles_{:.2}.dat'.format(self.y_pos), 'w')
 
         #get data
         # edges = self.rawEdgeData()
         # vertices = self.rawVertData()
         sites = self.rawSiteData()
-        scan = self.rawScanlineData()
         circles = self.rawCircleData()
         beachfront = self.rawBeachfrontData()
 
         # fverts.write(vertices)
         # fedges.write(edges)
         fsites.write(sites)
-        fscan.write(scan)
         fcircle.write(circles)
         fbeach.write(beachfront)
 
@@ -204,13 +219,40 @@ class Voronoi:
         return edges, cBuf
 
     def createScanline(self):
-        e1 = point(self.view_bounds["xmin"], self.view_bounds["ymax"], 0.0)
-        e2 = point(self.view_bounds["xmax"], self.view_bounds["ymax"], 0.0)
-        self.scanline = Scanline(e1, e2)
+        # e1 = point(self.view_bounds["xmin"], self.view_bounds["ymax"], 0.0)
+        # e2 = point(self.view_bounds["xmax"], self.view_bounds["ymax"], 0.0)
+        # self.scanline = Scanline(e1, e2)
+        pass
 
     def beachfrontToBuffer(self):
-        beaches, cBuf = self.beachline.toBuffer()
-        return beaches, cBuf
+        # beaches, cBuf = self.beachfront.toBuffer()
+        # return beaches, cBuf
+        pass
+
+    def parabolasToBuffer(self):
+        #parabolas can be represented as y = Ax^2 + Bx + C
+        #focus = site.y; directrix = self.y_pos
+        #p = (site.y - self.y_pos)/2
+        #dist = fabs(p)
+
+        #get the control points for each site
+        ctl_pts = []
+        # p = (site.y - self.y_pos)/2
+        # dist = fabs(p)
+        # left_pos, right_pos = site.inv_arceqn(self.y_pos)
+
+
+        for site in self.sites:
+            # alpha = sqrt(fabs(self.y_pos*self.y_pos-site.y*site.y))
+            p = (site.y - self.y_pos)/2
+            left_pos, right_pos = site.inv_arceqn(self.y_pos)
+            b = (-1.0/(2.0*p))*(site.x)
+            a = (1.0/(4.0*p))
+            ctl0 = point(left_pos, 1, 0)
+            ctl1 = point((left_pos+right_pos)/2.0, 1.0 + (2.0*a*left_pos+b)*((right_pos-left_pos)/2.0), 0)
+            ctl2 = point(right_pos, 1, 0)
+            ctl_pts.append([ctl0.components(), ctl1.components(), ctl2.components()])
+        return ctl_pts
 
     def sitesToBuffer(self):
         return self.site_buffer, self.color_buffer
@@ -233,7 +275,7 @@ class Voronoi:
         return buf, cbuf
 
     def beachfrontSegments(self):
-        return int(len(self.beachline.beachBuf) / 3)
+        return int(len(self.beachfront.beachBuf) / 3)
 
     def circleSegments(self):
         if len(self.circles) > 0:
@@ -246,126 +288,130 @@ class Voronoi:
             self.site_buffer.extend(p.components())
             self.color_buffer.extend(c.components())
         site = Site(p, c)
-        site.update(self.scanline)
 
         self.sites.append(site)
-        self.event_pq.append(site)
-        Circle.sites = self.sites
+        self.event_pq.put(site)
         Delaunay.vertices = self.sites
 
     def validateDCEL(self):
         return self.edgeDCEL.validateCells()
 
     def startScan(self):
-        print("starting scan...")
-        Beach.bounds = self.view_bounds
-        self.setBounds()
-        self.edgeDCEL.setBounds(self.bounds)
-        self.scanning = True
+        # print("starting scan...")
+        # self.setBounds()
+        # self.edgeDCEL.setBounds(self.bounds)
+        # self.scanning = True
+        pass
 
     def finishScan(self):
-        print("finishing scan...")
-        self.delaunay.verify_delaunay()
-        self.scanning = False
-        self.outputVoronoi()
+        # print("finishing scan...")
+        # self.delaunay.verify_delaunay()
+        # self.outputVoronoi()
+        pass
 
-    def scanStarted(self):
-        if self.scanline.y < (self.view_bounds["ymax"]):
-            return True
-        else:
-            return False
+    # def scanStarted(self):
+        # if self.scanline.y < (self.view_bounds["ymax"]):
+        #     return True
+        # else:
+        #     return False
+        # return True
 
-    def scanFinished(self):
-        if self.scanline.y < (self.view_bounds["ymin"] - self.scanline.dy):
-            return True
-        else:
-            return False
+    # def scanFinished(self):
+        # if self.scanline.y < (self.view_bounds["ymin"] - self.scanline.dy):
+        #     return True
+        # else:
+        #     return False
+        # return False
 
-    def processEvent(self):
-        # take the latest event
-        event = self.event_pq.pop()
+    def updateBeachfront(self, y_pos):
+        for beach in self.beachfront.inorder():
+            beach.bkpt = y_pos
+
+    def processEvent(self, event):
         process_str = ""
-        self.scanline.y = event.y
         if isinstance(event, Site):
             site = event
             process_str += "\nSite EVENT: \n\tsite event site{} @y = {}".format(
                 site, site.y)
-            beach = Beach(site, self.scanline)
-            asap_circles, circle_events, bad_circles = self.beachline.insert(beach)
-            self.beaches.append(beach)
-            for c in bad_circles:
-                try:
-                    for i in range(0, self.event_pq.count(c)):
-                        self.event_pq.remove(c)
-                        process_str += "\n\tRemoving this circle event {} @y{} from the queue".format(
-                            c, c.y)
-                except:
-                    logger.warning(
-                            "WARNING: could not remove c:{} cx:{}".format(
-                                c, c.c))
-            if circle_events:
-                self.circles.extend(circle_events)
-                self.event_pq.extend(circle_events)
-                process_str += "\n\tAdding these circle events {} to the queue".format(
-                    str([str(c) for c in circle_events]))
+
+            self.updateBeachfront(site.y)
+            #get the arc to the left&right of this one
+            left_arc = self.beachfront.search_val(site.x)
+            right_arc = left_arc.next
+
+            new_arc = self.beachfront.insert(site)
+
+            #update siblings (todo: write tests that ensure this is the same output as finding them algorithmically)
+            new_arc.prev = left_arc
+            new_arc.next = right_arc
+
+            # add new edges
+            if left_arc and left_arc.site:
+                edge = self.edgeDCEL.addEdge(left_arc.site, site)
+                new_arc.edge = edge
+            if right_arc and right_arc.site:
+                edge = self.edgeDCEL.addEdge(site, right_arc.site)
+                right_arc.edge = edge
+
+            #to do: create circle events
+
+
+            # for c in bad_circles:
+            #     try:
+            #         for i in range(0, self.event_pq.count(c)):
+            #             self.event_pq.remove(c)
+            #             process_str += "\n\tRemoving this circle event {} @y{} from the queue".format(
+            #                 c, c.y)
+            #     except:
+            #         logger.warning(
+            #                 "WARNING: could not remove c:{} cx:{}".format(
+            #                     c, c.c))
+            # if circle_events:
+            #     self.circles.extend(circle_events)
+            #     self.event_pq.extend(circle_events)
+            #     process_str += "\n\tAdding these circle events {} to the queue".format(
+            #         str([str(c) for c in circle_events]))
 
         else:
             circle = event
             process_str += "\nCircle EVENT: \n\tcircle event @(cx{}, cy{}), sy{}".format(
                 circle.c.x, circle.c.y, self.scanline.y)
-            # arc = self.beachline.find_by_x(circle)
+            # arc = self.beachfront.find_by_x(circle)
             self.vvertices.append(circle.c)
             self.delaunay.add_face(circle)
             self.edgeDCEL.handleCircle(circle)
+            self.beachfront.remove(arc)
 
-            # asap_circles, new_circles, bad_circles = self.beachline.remove(arc)
-            asap_circles, new_circles, bad_circles = self.beachline.remove(circle.arc)
-            for c in bad_circles:
-                try:
-                    for i in range(0, self.event_pq.count(c)):
-                        self.event_pq.remove(c)
-                        process_str += "\n\tRemoving this circle event {} @y{} from the queue".format(
-                            c, c.y)
-                except:
-                    if not c.equals(circle):
-                        logger.warning(
-                            "WARNING: could not remove c:{} cx:{}".format(
-                                c, c.c))
-                    else:
-                        logger.warning(
-                            "WARNING: circle  c:{} cx:{} was not removed and was circle {}".format(
-                                c, c.c, circle))
-            if new_circles:
-                for c in new_circles:
-                    if not c.equals(circle):
-                        self.circles.append(c)
-                        self.event_pq.append(c)
-                        process_str += "\n\tAdding this circle event {} @y{} to the queue".format(
-                            c, c.y)
-            self.handled_circles.append(circle)
-        self.beachline.update(self.beachline.getHead())
+            #to do: update edge endpoints
+
+            # asap_circles, new_circles, bad_circles = self.beachfront.remove(arc)
+            # asap_circles, new_circles, bad_circles = self.beachfront.remove(circle.arc)
+            # for c in bad_circles:
+            #     try:
+            #         for i in range(0, self.event_pq.count(c)):
+            #             self.event_pq.remove(c)
+            #             process_str += "\n\tRemoving this circle event {} @y{} from the queue".format(
+            #                 c, c.y)
+            #     except:
+            #         if not c.equals(circle):
+            #             logger.warning(
+            #                 "WARNING: could not remove c:{} cx:{}".format(
+            #                     c, c.c))
+            #         else:
+            #             logger.warning(
+            #                 "WARNING: circle  c:{} cx:{} was not removed and was circle {}".format(
+            #                     c, c.c, circle))
+            # if new_circles:
+            #     for c in new_circles:
+            #         if not c.equals(circle):
+            #             self.circles.append(c)
+            #             self.event_pq.append(c)
+            #             process_str += "\n\tAdding this circle event {} @y{} to the queue".format(
+            #                 c, c.y)
+            # self.handled_circles.append(circle)
+
         logger.debug(process_str)
-        # update all the new sites
-        self.event_pq.sort(key=lambda site: site.y, reverse=False)
 
-    def update(self):
-        if not self.scanFinished():
-            self.scanline.update()
-            for site in self.sites:
-                site.update(self.scanline)
-
-            for circle in self.circles:
-                circle.update(self.scanline)
-
-            self.event_pq.sort(key=lambda site: site.y, reverse=False)
-            if len(self.event_pq) == 0:
-                self.scanline.y = -1.0
-                self.edgeDCEL.finish()
-
-            elif self.event_pq[-1].dist2scan <= fabs(self.scanline.dy/2):
-                while len(self.event_pq) > 0 and (
-                        self.event_pq[-1].dist2scan <= fabs(self.scanline.dy/2)):
-                    self.processEvent()
 
     def precompute(self):
         '''
@@ -377,10 +423,22 @@ class Voronoi:
         precompute_str = "\n----**** voronoi precompute ****----"
         # self.event_pq.sort(key=lambda site: site.dist2scan, reverse=True)
         # can't we just order by y coordinate?
-        self.event_pq.sort(key=lambda site: site.y, reverse=False)
-        while (len(self.event_pq) > 0):
-            self.processEvent()
-        self.edgeDCEL.finish()
+        # self.event_pq.sort(key=lambda site: site.y, reverse=False)
+        print("starting scan...")
+        if self.sites:
+            self.setBounds()
+            self.edgeDCEL.setBounds(self.bounds)
+
+            while (not self.event_pq.empty()):
+                event = self.event_pq.get()
+                self.processEvent(event)
+
+            print("queue is empty")
+            # self.edgeDCEL.finish()
+
+        print("finishing scan...")
+        # self.delaunay.verify_delaunay()
+        # self.outputVoronoi()
 
         precompute_str += "\n----**** done with voronoi precompute ****----"
         # print("\n----**** done with voronoi precompute ****----")
