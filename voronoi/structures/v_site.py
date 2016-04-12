@@ -81,13 +81,13 @@ class Site:
             return site.x
 
         #define some other things to make the eqn less cumbersome
-        foc_dist = arc_x - larc_x
+        foc_dist = larc_x - arc_x
         # print(arc_drx, larc_drx)
         aby2 = 1.0 / arc_drx - 1.0 / larc_drx
         b = foc_dist / larc_drx 
         # print(aby2, arc_x)
         if aby2 != 0:
-            bkpt =  (-b + sqrt(b * b - 2.0 * aby2 * (foc_dist * foc_dist / (-2.0 * larc_drx) - larc_y + larc_drx / 2.0 + arc_y - arc_drx / 2.0))) / aby2 + arc_x;
+            bkpt = (-b + sqrt(b * b - 2.0 * aby2 * (foc_dist * foc_dist / (-2.0 * larc_drx) - larc_y + larc_drx / 2.0 + arc_y - arc_drx / 2.0))) / aby2 + arc_x;
         else:
             bkpt = (arc_x + larc_x)/2.0
 

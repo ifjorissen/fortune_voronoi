@@ -61,8 +61,6 @@ class RBTree:
         initialize the empty tree with a single leaf node,
         satisfying the property that the root is black and the leaf is black
         '''
-        # print("hi")
-        # print(create_node)
         self.create_node = create_node
         self.NIL = create_node(None, BLACK)
 
@@ -307,7 +305,7 @@ class RBTree:
         #make sure the root is black
         self.root.color = BLACK
 
-    def insert(self, data, root_node=None):
+    def insert(self, data, after=None, root_node=None):
         '''
         given a value, create a node and insert it as "usual"
         '''
@@ -319,27 +317,42 @@ class RBTree:
             cur = self.root
         else:
             cur = root_node
-        
-        # find the right location for this node
-        while cur is not self.NIL:
-            parent = cur
-            if new_node < cur:
-                cur = cur.left
+
+        if after and after is not self.NIL:
+            # print("inserting new_node {} after: {}".format(new_node, after)) 
+            new_node.prev = after
+            new_node.next = after.next
+            if after.next:
+                after.next.prev = new_node
+            after.next = new_node
+            if after.right is not self.NIL:
+                after = after.right
+                while after.left is not self.NIL: 
+                    after = after.left
+                after.left = new_node
             else:
-                cur = cur.right
-
-        #case where we are at the root
-        if parent is self.NIL:
-            self.root = new_node
-
-        #other cases where we aren't at the root and need figure out whether 
-        #new_node is left or right child
-        elif new_node < parent:
-            parent.left = new_node
+                after.right = new_node
+            new_node.parent = after
         else:
-            parent.right = new_node
+            # find the right location for this node
+            while cur is not self.NIL:
+                parent = cur
+                if new_node < cur:
+                    cur = cur.left
+                else:
+                    cur = cur.right
 
-        new_node.parent = parent
+            #case where we are at the root
+            if parent is self.NIL:
+                self.root = new_node
+
+            #other cases where we aren't at the root and need figure out whether 
+            #new_node is left or right child
+            elif new_node < parent:
+                parent.left = new_node
+            else:
+                parent.right = new_node
+            new_node.parent = parent
 
         #now fix everything up & restore red black properties
         self._insert_fixup(new_node)
@@ -353,7 +366,7 @@ class RBTree:
             root_node = self.root
         cur = root_node
         while cur is not self.NIL:
-            if cur is data:
+            if cur.data is data:
                 return cur
             elif data < cur:
                 cur = cur.left
@@ -387,7 +400,6 @@ class RBTree:
                 return root_node
         else:
             return root_node
-
 
 
     def remove(self, data, root_node=None):
@@ -477,6 +489,16 @@ class RBTree:
 
             return l_tree + [root_node] + r_tree 
 
+    def level_order(self, root_node=None):
+        if self.is_empty():
+            return []
+
+        if not root_node:
+            root_node = self.root
+
+        if root_node is self.NIL:
+            return []
+
     def is_empty(self):
         if self.root is self.NIL:
             return True
@@ -488,3 +510,6 @@ class RBTree:
 
     def preorder(self):
         pass
+
+    def __repr__(self):
+        return "beachfront (inorder): {}".format(self.inorder())    

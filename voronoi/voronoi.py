@@ -230,29 +230,64 @@ class Voronoi:
         pass
 
     def parabolasToBuffer(self):
-        #parabolas can be represented as y = Ax^2 + Bx + C
-        #focus = site.y; directrix = self.y_pos
-        #p = (site.y - self.y_pos)/2
-        #dist = fabs(p)
-
         #get the control points for each site
         ctl_pts = []
-        # p = (site.y - self.y_pos)/2
-        # dist = fabs(p)
-        # left_pos, right_pos = site.inv_arceqn(self.y_pos)
 
+        #generate 4 control points for cubic bezier curve (i.e parabolic segment)
+        beachfront = self.beachfront.inorder()
+        print(beachfront)
+        for beach in beachfront:
+            p = (beach.site.y - self.y_pos)/2
+            # left_pos, right_pos = beach.inv_arceqn(self.y_pos)
+            beach.bkpt = self.y_pos
+            left_pos = beach.bkpt
+            right_pos = None
 
-        for site in self.sites:
-            # alpha = sqrt(fabs(self.y_pos*self.y_pos-site.y*site.y))
-            p = (site.y - self.y_pos)/2
-            left_pos, right_pos = site.inv_arceqn(self.y_pos)
-            b = (-1.0/(2.0*p))*(site.x)
+            if isinf(left_pos):
+                left_pos = beach.site.inv_arceqn(self.y_pos)[0]
+            f_left = beach.site.arceqn(left_pos, self.y_pos)
+
+            if beach.next:
+                beach.next.bkpt = self.y_pos
+                right_pos = beach.next.bkpt
+
+            if not right_pos or isinf(right_pos):
+                right_pos = beach.site.inv_arceqn(self.y_pos)[1]
+            f_right = beach.site.arceqn(right_pos, self.y_pos)
+            print("left_bkpt: {} right_bkpt: {}\n f_left: {} f_right: {}".format(left_pos, right_pos, f_left, f_right))
+
+            b = (-1.0/(2.0*p))*(beach.x)
             a = (1.0/(4.0*p))
-            ctl0 = point(left_pos, 1, 0)
-            ctl1 = point((left_pos+right_pos)/2.0, 1.0 + (2.0*a*left_pos+b)*((right_pos-left_pos)/2.0), 0)
-            ctl2 = point(right_pos, 1, 0)
-            ctl_pts.append([ctl0.components(), ctl1.components(), ctl2.components()])
+
+            # the two endpoints
+            e1 = point(left_pos, f_left, 0)
+            e2 = point(right_pos, f_right, 0)
+
+            #the control point for the quadratic curve--> used to generate ctlpts for cubic 
+            ctl1 = point((left_pos+right_pos)/2.0, f_left + (2.0*a*left_pos+b)*((right_pos-left_pos)/2.0), 0)
+
+            ctl01x = (2/3.0)*ctl1.x + (1/3.0)*e1.x
+            ctl01y = (2/3.0)*ctl1.y + (1/3.0)*e1.y
+            ctl01 = point(ctl01x, ctl01y, 0)
+
+            ctl12x = (2/3.0)*ctl1.x + (1/3.0)*e2.x
+            ctl12y = (2/3.0)*ctl1.y + (1/3.0)*e2.y
+            ctl12 = point(ctl12x, ctl12y, 0)
+
+            ctl_pts.append([e1.components(), ctl01.components(), ctl12.components(), e2.components()])
         return ctl_pts
+
+        # generates 3 control points for quadratic bezier curve (i.e parabola)
+        # for site in self.sites:
+        #     p = (site.y - self.y_pos)/2
+        #     left_pos, right_pos = site.inv_arceqn(self.y_pos)
+        #     b = (-1.0/(2.0*p))*(site.x)
+        #     a = (1.0/(4.0*p))
+        #     ctl0 = point(left_pos, 1, 0)
+        #     ctl1 = point((left_pos+right_pos)/2.0, 1.0 + (2.0*a*left_pos+b)*((right_pos-left_pos)/2.0), 0)
+        #     ctl2 = point(right_pos, 1, 0)
+        #     ctl_pts.append([ctl0.components(), ctl1.components(), ctl2.components()])
+        # return ctl_pts
 
     def sitesToBuffer(self):
         return self.site_buffer, self.color_buffer
@@ -335,23 +370,25 @@ class Voronoi:
                 site, site.y)
 
             self.updateBeachfront(site.y)
-            #get the arc to the left&right of this one
+            #get the arc to the left of this one
             left_arc = self.beachfront.search_val(site.x)
-            right_arc = left_arc.next
+            # right_arc = left_arc.next
 
-            new_arc = self.beachfront.insert(site)
+            new_arc = self.beachfront.insert(site, left_arc)
 
             #update siblings (todo: write tests that ensure this is the same output as finding them algorithmically)
-            new_arc.prev = left_arc
-            new_arc.next = right_arc
+            print("beachfront\n {}".format(self.beachfront))
+
+            if left_arc is not self.beachfront.NIL:
+                split_arc = self.beachfront.insert(left_arc.site, new_arc)
 
             # add new edges
-            if left_arc and left_arc.site:
-                edge = self.edgeDCEL.addEdge(left_arc.site, site)
+            if new_arc.prev and new_arc.prev.site:
+                edge = self.edgeDCEL.addEdge(new_arc.prev.site, site)
                 new_arc.edge = edge
-            if right_arc and right_arc.site:
-                edge = self.edgeDCEL.addEdge(site, right_arc.site)
-                right_arc.edge = edge
+            if new_arc.next and new_arc.next.site:
+                edge = self.edgeDCEL.addEdge(site, new_arc.next.site)
+                new_arc.next.edge = edge
 
             #to do: create circle events
 

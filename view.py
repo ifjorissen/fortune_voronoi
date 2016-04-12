@@ -68,6 +68,7 @@ height = 1024
 scale = 1.0 / min(width, height)
 V = None
 finished = False
+scanning = False
 
 def init_shaders(vs_name, fs_name):
     """Compile the vertex and fragment shaders from source."""
@@ -151,7 +152,7 @@ def draw():
         parabola_ctlpts = V.parabolasToBuffer()  
         # glClear(GL_COLOR_BUFFER_BIT)
 
-        # glPushAttrib(GL_ALL_ATTRIB_BITS)
+        glPushAttrib(GL_ALL_ATTRIB_BITS)
         glColor3f(0.72, 0.32, 0)
         glLineWidth(5)
         glEnable(GL_LINE_SMOOTH)
@@ -165,6 +166,8 @@ def draw():
     
         glPointSize(10.0)
         glColor3f(0.0, .4, 0.9)
+        glEnable(GL_POINT_SPRITE)
+        glEnable(GL_VERTEX_PROGRAM_POINT_SIZE)
         glBegin(GL_POINTS)
         for ctl_pt_set in parabola_ctlpts:
             glVertex3fv(ctl_pt_set[0])
@@ -172,7 +175,7 @@ def draw():
             glVertex3fv(ctl_pt_set[2])
         glEnd()
         glFlush()
-        # glPopAttrib()
+        glPopAttrib()
 
     # * * * * * * * * * * * * * * * *
     # Draw the circles
@@ -339,7 +342,7 @@ def draw():
 
 def keypress(key, x, y):
     """ Handle a "normal" keypress. """
-    global V, control, showCircles, showDelaunay, showBeachfront
+    global V, control, showCircles, showDelaunay, showBeachfront, scanning
 
     # Handle ESC key.
     if key == b'\033':
@@ -352,6 +355,7 @@ def keypress(key, x, y):
         #     V.startScan()
         # else:
         #     V.scanning = not V.scanning
+        scanning = not scanning
         tick(0)
 
     # hide circles
@@ -529,22 +533,25 @@ def update_vedge_buffers():
 
 def tick(val):
     global V, scanline
-    valid_sites = []
-    for site in sites:
-        if site.y > scanline.y:
-            valid_sites.append(site)
-    print("new voronoi with {}".format(valid_sites))
-    V = Voronoi(valid_sites, scanline.y)
-    V.precompute()
-    scanline.update()
-    update_scanline_buffers()
-    # update_beachline_buffers()
-    update_circle_buffers()
-    update_vvertex_buffers()
-    update_delaunay_buffers()
-    # update_vedge_buffers()
-    glutPostRedisplay()
-    glutTimerFunc(30, tick, val)
+    if scanning:
+        valid_sites = []
+        for site in sites:
+            if site.y > scanline.y:
+                valid_sites.append(site)
+        print("new voronoi with {}".format(valid_sites))
+        V = Voronoi(valid_sites, scanline.y)
+        V.precompute()
+        scanline.update()
+        update_scanline_buffers()
+        # update_beachline_buffers()
+        update_circle_buffers()
+        update_vvertex_buffers()
+        update_delaunay_buffers()
+        # update_vedge_buffers()
+        glutPostRedisplay()
+        glutTimerFunc(30, tick, val)
+    else:
+        glutTimerFunc(30, tick, val)
     # if V.scanning and not V.scanFinished():
         # if val:
         #     val = not val
