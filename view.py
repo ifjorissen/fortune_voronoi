@@ -159,8 +159,8 @@ def draw():
         for site in range(len(parabola_ctlpts)):
             glMap1f(GL_MAP1_VERTEX_3, 0.0, 1.0, parabola_ctlpts[site])
             glEnable(GL_MAP1_VERTEX_3);
-            glMapGrid1f(30,0,1);
-            glEvalMesh1(GL_LINE,0,30);
+            glMapGrid1f(50,0,1);
+            glEvalMesh1(GL_LINE,0,50);
 
         glDisable(GL_LINE_SMOOTH)
     
@@ -177,59 +177,6 @@ def draw():
         glFlush()
         glPopAttrib()
 
-    # * * * * * * * * * * * * * * * *
-    # Draw the circles
-    # if V.circleSegments() and showCircles:
-    #     glLineWidth(3)
-    #     colorAL = glGetAttribLocation(shs, 'a_color')
-    #     posAL = glGetAttribLocation(shs, 'a_position')
-
-    #     # # all the vertex positions
-    #     glBindBuffer(GL_ARRAY_BUFFER, circle_buffer)
-    #     glVertexAttribPointer(posAL, 3, GL_FLOAT, GL_FALSE, 0, None)
-    #     glEnableVertexAttribArray(posAL)
-
-    #     # # all the vertex colors
-    #     glBindBuffer(GL_ARRAY_BUFFER, circle_color_buffer)
-    #     glVertexAttribPointer(colorAL, 3, GL_FLOAT, GL_FALSE, 0, None)
-    #     glEnableVertexAttribArray(colorAL)
-    #     for i in range(0, len(V.circles)):
-    #         glDrawArrays(
-    #             GL_LINE_LOOP,
-    #             V.circles[0].smoothness * i,
-    #             V.circles[0].smoothness)
-    #     glDisableVertexAttribArray(posAL)
-    #     glDisableVertexAttribArray(colorAL)
-    # glDisable(GL_LINE_SMOOTH)
-    # glutSwapBuffers()
-
-    # # * * * * * * * * * * * * * * * *
-    # # Draw all the voronoi ctl sites.
-    if sites:
-        # print("ok there are Vsites: {}".format(V.sites))
-        # print("ok there are sites: {}".format(sites))
-        shs = pt_shaders
-        glUseProgram(shs)
-        colorAL = glGetAttribLocation(shs, 'a_color')
-        posAL = glGetAttribLocation(shs, 'a_position')
-
-        # all the vertex positions
-        glEnable(GL_POINT_SPRITE)
-        glEnable(GL_VERTEX_PROGRAM_POINT_SIZE)
-        glEnableVertexAttribArray(posAL)
-        glBindBuffer(GL_ARRAY_BUFFER, site_buffer)
-        glVertexAttribPointer(posAL, 3, GL_FLOAT, GL_FALSE, 0, None)
-
-        # all the vertex colors
-        glEnableVertexAttribArray(colorAL)
-        glBindBuffer(GL_ARRAY_BUFFER, site_color_buffer)
-        glVertexAttribPointer(colorAL, 3, GL_FLOAT, GL_FALSE, 0, None)
-
-        glDrawArrays(GL_POINTS, 0, len(sites))
-        glDisable(GL_POINT_SPRITE)
-        glDisable(GL_VERTEX_PROGRAM_POINT_SIZE)
-        glDisableVertexAttribArray(posAL)
-        glDisableVertexAttribArray(colorAL)
 
     # # * * * * * * * * * * * * * * * *
     # # Draw the scanline
@@ -255,6 +202,58 @@ def draw():
         glDisableVertexAttribArray(posAL)
         glDisableVertexAttribArray(colorAL)
     glDisable(GL_LINE_SMOOTH)
+
+    # * * * * * * * * * * * * * * * *
+    # Draw the circles
+    if V.circleSegments() and showCircles:
+        glLineWidth(3)
+        colorAL = glGetAttribLocation(shs, 'a_color')
+        posAL = glGetAttribLocation(shs, 'a_position')
+
+        # # all the vertex positions
+        glBindBuffer(GL_ARRAY_BUFFER, circle_buffer)
+        glVertexAttribPointer(posAL, 3, GL_FLOAT, GL_FALSE, 0, None)
+        glEnableVertexAttribArray(posAL)
+
+        # # all the vertex colors
+        glBindBuffer(GL_ARRAY_BUFFER, circle_color_buffer)
+        glVertexAttribPointer(colorAL, 3, GL_FLOAT, GL_FALSE, 0, None)
+        glEnableVertexAttribArray(colorAL)
+        for i in range(0, len(V.circles)):
+            glDrawArrays(
+                GL_LINE_LOOP,
+                V.circles[0].smoothness * i,
+                V.circles[0].smoothness)
+        glDisableVertexAttribArray(posAL)
+        glDisableVertexAttribArray(colorAL)
+    glDisable(GL_LINE_SMOOTH)
+    glutSwapBuffers()
+
+    # # * * * * * * * * * * * * * * * *
+    # # Draw all the voronoi ctl sites.
+    if sites:
+        shs = pt_shaders
+        glUseProgram(shs)
+        colorAL = glGetAttribLocation(shs, 'a_color')
+        posAL = glGetAttribLocation(shs, 'a_position')
+
+        # all the vertex positions
+        glEnable(GL_POINT_SPRITE)
+        glEnable(GL_VERTEX_PROGRAM_POINT_SIZE)
+        glEnableVertexAttribArray(posAL)
+        glBindBuffer(GL_ARRAY_BUFFER, site_buffer)
+        glVertexAttribPointer(posAL, 3, GL_FLOAT, GL_FALSE, 0, None)
+
+        # all the vertex colors
+        glEnableVertexAttribArray(colorAL)
+        glBindBuffer(GL_ARRAY_BUFFER, site_color_buffer)
+        glVertexAttribPointer(colorAL, 3, GL_FLOAT, GL_FALSE, 0, None)
+
+        glDrawArrays(GL_POINTS, 0, len(sites))
+        glDisable(GL_POINT_SPRITE)
+        glDisable(GL_VERTEX_PROGRAM_POINT_SIZE)
+        glDisableVertexAttribArray(posAL)
+        glDisableVertexAttribArray(colorAL)
 
     # # * * * * * * * * * * * * * * * *
     # # Draw delaunay edges
@@ -309,29 +308,29 @@ def draw():
 
     # # * * * * * * * * * * * * * * * *
     # # Draw voronoi vertices
-    # if V.vvertices:
-    #     shs = pt_shaders
-    #     glUseProgram(shs)
-    #     colorAL = glGetAttribLocation(shs, 'a_color')
-    #     posAL = glGetAttribLocation(shs, 'a_position')
+    if V.vvertices:
+        shs = pt_shaders
+        glUseProgram(shs)
+        colorAL = glGetAttribLocation(shs, 'a_color')
+        posAL = glGetAttribLocation(shs, 'a_position')
 
-    #     # all the vertex positions
-    #     glEnable(GL_POINT_SPRITE)
-    #     glEnable(GL_VERTEX_PROGRAM_POINT_SIZE)
-    #     glEnableVertexAttribArray(posAL)
-    #     glBindBuffer(GL_ARRAY_BUFFER, vvertex_buffer)
-    #     glVertexAttribPointer(posAL, 3, GL_FLOAT, GL_FALSE, 0, None)
+        # all the vertex positions
+        glEnable(GL_POINT_SPRITE)
+        glEnable(GL_VERTEX_PROGRAM_POINT_SIZE)
+        glEnableVertexAttribArray(posAL)
+        glBindBuffer(GL_ARRAY_BUFFER, vvertex_buffer)
+        glVertexAttribPointer(posAL, 3, GL_FLOAT, GL_FALSE, 0, None)
 
-    #     # all the vertex colors
-    #     glEnableVertexAttribArray(colorAL)
-    #     glBindBuffer(GL_ARRAY_BUFFER, vvertex_color_buffer)
-    #     glVertexAttribPointer(colorAL, 3, GL_FLOAT, GL_FALSE, 0, None)
+        # all the vertex colors
+        glEnableVertexAttribArray(colorAL)
+        glBindBuffer(GL_ARRAY_BUFFER, vvertex_color_buffer)
+        glVertexAttribPointer(colorAL, 3, GL_FLOAT, GL_FALSE, 0, None)
 
-    #     glDrawArrays(GL_POINTS, 0, len(V.vvertices))
-    #     glDisable(GL_POINT_SPRITE)
-    #     glDisable(GL_VERTEX_PROGRAM_POINT_SIZE)
-    #     glDisableVertexAttribArray(posAL)
-    #     glDisableVertexAttribArray(colorAL)
+        glDrawArrays(GL_POINTS, 0, len(V.vvertices))
+        glDisable(GL_POINT_SPRITE)
+        glDisable(GL_VERTEX_PROGRAM_POINT_SIZE)
+        glDisableVertexAttribArray(posAL)
+        glDisableVertexAttribArray(colorAL)
 
     glPopMatrix()
 

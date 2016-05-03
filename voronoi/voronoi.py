@@ -1,6 +1,5 @@
 #python lib imports
 from math import fabs, sqrt, isinf
-from queue import PriorityQueue as EventQueue
 
 #logging & logging config imports
 import logging
@@ -13,13 +12,14 @@ from .geom.geometry import point, vector
 from .geom.constants import EPSILON
 
 #misc structures imports
-from .structures.circle import Circle
+from .structures.circle import Circle, InvalidCircle, CircleAboveSweepline
 # from .structures.scanline import Scanline
 from .structures.v_site import Site
 # from .structures.beach import Beach, BeachODBLL
 from .delaunay import Delaunay
 from .structures.dcel import VoronoiDCEL
 from .structures.rbtree.rbtree import RBTree as Beachfront
+from .structures.priority_queue import PriorityQueueSet as EventQueue
 from .structures.new_beach import BeachNode
 
 RED = "RED"
@@ -36,7 +36,7 @@ class Voronoi:
         #structures & items
         self.circles = []
         self.sites = []
-        self.event_pq = EventQueue()
+        self.event_pq = EventQueue(key=lambda event: (-1)*event.y)
         self.beachfront = Beachfront(create_node=BeachNode)
         self.vvertices = []
         self.handled_circles = set()
@@ -232,29 +232,27 @@ class Voronoi:
     def parabolasToBuffer(self):
         #get the control points for each site
         ctl_pts = []
-
+        directrix = self.y_pos
+        self.updateBeachfront(directrix)
         #generate 4 control points for cubic bezier curve (i.e parabolic segment)
         beachfront = self.beachfront.inorder()
-        print(beachfront)
+        # print("parabolasToBuffer::beachfront: {}".format(beachfront))
         for beach in beachfront:
-            p = (beach.site.y - self.y_pos)/2
-            # left_pos, right_pos = beach.inv_arceqn(self.y_pos)
-            beach.bkpt = self.y_pos
-            left_pos = beach.bkpt
-            right_pos = None
-
+            p = (beach.site.y - directrix)/2
+            left_pos = beach.left_bkpt(directrix)
+            # print("initial left_bkpt: {}".format(left_pos))
             if isinf(left_pos):
-                left_pos = beach.site.inv_arceqn(self.y_pos)[0]
-            f_left = beach.site.arceqn(left_pos, self.y_pos)
+                # print("leftpos:: is inf!")
+                left_pos = beach.inv_arceqn(directrix)[0]
 
-            if beach.next:
-                beach.next.bkpt = self.y_pos
-                right_pos = beach.next.bkpt
+            f_left = beach.arceqn(left_pos, directrix)
+            right_pos = beach.next.left_bkpt(directrix)
+           
+            if isinf(right_pos):
+                right_pos = beach.inv_arceqn(directrix)[1]
 
-            if not right_pos or isinf(right_pos):
-                right_pos = beach.site.inv_arceqn(self.y_pos)[1]
-            f_right = beach.site.arceqn(right_pos, self.y_pos)
-            print("left_bkpt: {} right_bkpt: {}\n f_left: {} f_right: {}".format(left_pos, right_pos, f_left, f_right))
+            f_right = beach.arceqn(right_pos, directrix)
+            # print("left_bkpt: {} right_bkpt: {}\n f_left: {} f_right: {}".format(left_pos, right_pos, f_left, f_right))
 
             b = (-1.0/(2.0*p))*(beach.x)
             a = (1.0/(4.0*p))
@@ -279,8 +277,8 @@ class Voronoi:
 
         # generates 3 control points for quadratic bezier curve (i.e parabola)
         # for site in self.sites:
-        #     p = (site.y - self.y_pos)/2
-        #     left_pos, right_pos = site.inv_arceqn(self.y_pos)
+        #     p = (site.y - directrix)/2
+        #     left_pos, right_pos = inv_arceqn(self.y_pos)
         #     b = (-1.0/(2.0*p))*(site.x)
         #     a = (1.0/(4.0*p))
         #     ctl0 = point(left_pos, 1, 0)
@@ -362,90 +360,109 @@ class Voronoi:
         for beach in self.beachfront.inorder():
             beach.bkpt = y_pos
 
+    def addCircle(self, arc, directrix):
+        circle = None
+        try:
+            circle = Circle(arc, directrix)
+            circ_str = "\nADD CIRCLE"
+            # make sure the circle's lowest point is below the scanline (i.e, where we just added the site)
+            # note that this isnt quite correct (e.g think abt case where we
+            # removed arc & are recomputing)
+            circ_str += "\n\t adding a circle @cx {}, cy {}, low {})".format(
+                circle.c.x, circle.c.y, circle.low.y)
+            circ_str += "\n\t circle.sites(): :{}".format(
+                str([str(site) for site in circle.csites()]))
+            logger.debug(circ_str)
+            self.circles.append(circle)
+            self.event_pq.put(circle)
+        except InvalidCircle as IC:
+            logger.error("CIRCLE ERROR: Not a valid circle {}".format(str(IC)))
+
+        except CircleAboveSweepline as CAS:
+            logger.error("CIRCLE ERROR::Sweepline Not a valid circle {}".format(str(CAS)))
+
+        return circle
+
     def processEvent(self, event):
         process_str = ""
+        directrix = event.y
+        self.updateBeachfront(directrix)
         if isinstance(event, Site):
             site = event
             process_str += "\nSite EVENT: \n\tsite event site{} @y = {}".format(
                 site, site.y)
 
-            self.updateBeachfront(site.y)
-            #get the arc to the left of this one
+            #get the arc to the left of this one and add the new arc to the right of left_arc
             left_arc = self.beachfront.search_val(site.x)
-            # right_arc = left_arc.next
+            left_arc.circle = None
+            right_bkpt = left_arc.right_bkpt(directrix)
+            # print("\nleft arc: {}".format(left_arc))
+            # print("processEvent::beachfront before\n {}".format(self.beachfront))
 
-            new_arc = self.beachfront.insert(site, left_arc)
-
-            #update siblings (todo: write tests that ensure this is the same output as finding them algorithmically)
-            print("beachfront\n {}".format(self.beachfront))
-
-            if left_arc is not self.beachfront.NIL:
-                split_arc = self.beachfront.insert(left_arc.site, new_arc)
+            #if new_arc splits left_arc then add a new parabolic segment associated with the left arc's site to the beachfront
+            #if the next arc is None, then this bkpt will be INF 
+            if left_arc != None:
+                new_arc = self.beachfront.insert(site, left_arc)
+                #if statement excludes the edge case where x coordinate of site is the breakpoint; we don't split in that case
+                if site.x is not right_bkpt:
+                    split_arc = self.beachfront.insert(left_arc.site, new_arc)
+            else:
+                new_arc = self.beachfront.insert(site)
 
             # add new edges
-            if new_arc.prev and new_arc.prev.site:
+            if new_arc.prev != None:
                 edge = self.edgeDCEL.addEdge(new_arc.prev.site, site)
                 new_arc.edge = edge
-            if new_arc.next and new_arc.next.site:
+            if new_arc.next != None:
                 edge = self.edgeDCEL.addEdge(site, new_arc.next.site)
                 new_arc.next.edge = edge
 
-            #to do: create circle events
+            #try to add circle events
+            if new_arc.prev != None and new_arc.prev.prev != None:
+                self.addCircle(new_arc.prev, directrix)
 
-
-            # for c in bad_circles:
-            #     try:
-            #         for i in range(0, self.event_pq.count(c)):
-            #             self.event_pq.remove(c)
-            #             process_str += "\n\tRemoving this circle event {} @y{} from the queue".format(
-            #                 c, c.y)
-            #     except:
-            #         logger.warning(
-            #                 "WARNING: could not remove c:{} cx:{}".format(
-            #                     c, c.c))
-            # if circle_events:
-            #     self.circles.extend(circle_events)
-            #     self.event_pq.extend(circle_events)
-            #     process_str += "\n\tAdding these circle events {} to the queue".format(
-            #         str([str(c) for c in circle_events]))
+            if new_arc.next != None and new_arc.next.next != None:
+                self.addCircle(new_arc.next, directrix)
 
         else:
             circle = event
+            print("circle event: c.y {} directrix: {}".format(circle.y, directrix))
             process_str += "\nCircle EVENT: \n\tcircle event @(cx{}, cy{}), sy{}".format(
-                circle.c.x, circle.c.y, self.scanline.y)
-            # arc = self.beachfront.find_by_x(circle)
+                circle.c.x, circle.c.y, directrix)
+
+            arc = circle.arc
+            prev_arc = arc.prev
+            next_arc = arc.next
+
+            #remove the arc, add vertex in dcel
+            self.beachfront.delete(arc)
+            new_vert = self.edgeDCEL.handleCircle(circle)
+
+            #remove circle events for neighboring arcs since they are no longer valid
+            if prev_arc.circle:
+                self.event_pq.remove(prev_arc.circle)
+                prev_arc.circle = None
+            if next_arc.circle:
+                self.event_pq.remove(next_arc.circle)
+                next_arc.circle = None
+
+
+
+            #update edge destinations
+            prev_arc.edge.dest = new_vert
+            next_arc.edge = new_vert
+
+            #add a new edge
+            new_edge = self.edgeDCEL.addEdge(prev_arc.site, next_arc.site, new_vert)
+
+            #add new circle events
+            if prev_arc.prev != None:
+                self.addCircle(prev_arc, directrix)
+            if next_arc.next != None:
+                self.addCircle(next_arc, directrix)
+
             self.vvertices.append(circle.c)
             self.delaunay.add_face(circle)
-            self.edgeDCEL.handleCircle(circle)
-            self.beachfront.remove(arc)
-
-            #to do: update edge endpoints
-
-            # asap_circles, new_circles, bad_circles = self.beachfront.remove(arc)
-            # asap_circles, new_circles, bad_circles = self.beachfront.remove(circle.arc)
-            # for c in bad_circles:
-            #     try:
-            #         for i in range(0, self.event_pq.count(c)):
-            #             self.event_pq.remove(c)
-            #             process_str += "\n\tRemoving this circle event {} @y{} from the queue".format(
-            #                 c, c.y)
-            #     except:
-            #         if not c.equals(circle):
-            #             logger.warning(
-            #                 "WARNING: could not remove c:{} cx:{}".format(
-            #                     c, c.c))
-            #         else:
-            #             logger.warning(
-            #                 "WARNING: circle  c:{} cx:{} was not removed and was circle {}".format(
-            #                     c, c.c, circle))
-            # if new_circles:
-            #     for c in new_circles:
-            #         if not c.equals(circle):
-            #             self.circles.append(c)
-            #             self.event_pq.append(c)
-            #             process_str += "\n\tAdding this circle event {} @y{} to the queue".format(
-            #                 c, c.y)
-            # self.handled_circles.append(circle)
 
         logger.debug(process_str)
 
@@ -458,15 +475,13 @@ class Voronoi:
             showCircle(circle) etc, where the events are all precomputed & precise
         '''
         precompute_str = "\n----**** voronoi precompute ****----"
-        # self.event_pq.sort(key=lambda site: site.dist2scan, reverse=True)
-        # can't we just order by y coordinate?
-        # self.event_pq.sort(key=lambda site: site.y, reverse=False)
         print("starting scan...")
         if self.sites:
             self.setBounds()
             self.edgeDCEL.setBounds(self.bounds)
 
             while (not self.event_pq.empty()):
+                print(self.event_pq)
                 event = self.event_pq.get()
                 self.processEvent(event)
 

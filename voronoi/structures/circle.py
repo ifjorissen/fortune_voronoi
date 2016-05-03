@@ -86,12 +86,6 @@ class Circle:
         except:
             raise InvalidCircle(self.csites())
 
-    def dist_to_scanline(self, scanline):
-        self.dist2scan = fabs(self.low.y - scanline.y)
-
-    def update(self, scanline):
-        self.dist_to_scanline(scanline)
-
     def csites(self):
         return [self.s1, self.s2, self.s3]
 
@@ -101,40 +95,25 @@ class Circle:
         self.c = center
         self.r = sqrt((self.s1.x - self.c.x)**2 + (self.s1.y - self.c.y)**2)
         self.low = p(self.c.x, self.c.y - self.r, 0.0)
-        self._is_empty()
 
 
     def above_sweepline(self, sweepline):
-        if (self.low.y > sweepline.y):
-            # self.asap = True
+        if (self.low.y > sweepline):
             raise CircleAboveSweepline(self, sweepline)
             return True
         else:
             return False
 
-    # def __init__(self, s1, s2, s3, sweepline):
-    #     self.s1 = s1
-    #     self.s2 = s2
-    #     self.s3 = s3
-    #     self.asap = False
-    #     self.set_eqn()
-    #     self.above_sweepline(sweepline)
-    #     if self.low is not None:
-    #         self.y = self.low.y
-
-    def __init__(self, arc):
+    def __init__(self, arc, directrix):
         self.arc = arc
         arc.circle = self
-        self.s1 = arc.prev.beach.focus
-        self.s2 = arc.beach.focus
-        self.s3 = arc.next.beach.focus
-        sweepline = arc.beach.directrix
-        self.asap = False
+        self.s1 = arc.prev.site
+        self.s2 = arc.site
+        self.s3 = arc.next.site
         self.set_eqn()
-        self.above_sweepline(sweepline)
+        self.above_sweepline(directrix)
         if self.low is not None:
             self.y = self.low.y
-        self.update(sweepline)
 
 
     def __str__(self):

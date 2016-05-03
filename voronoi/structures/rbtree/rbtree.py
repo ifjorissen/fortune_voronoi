@@ -5,6 +5,7 @@
 #constants
 RED = "RED"
 BLACK = "BLACK"
+EPSILON = 1.0e-8
 
 class LeafNode:
     def __init__(self, data = None):
@@ -213,7 +214,7 @@ class RBTree:
         node_b.parent = node_a.parent
 
 
-    def _delete(self, del_node):
+    def delete(self, del_node):
         '''
         prob_node: maintains either the node removed or the node moved in the tree
         sol_node: the node which takes prob_node's place
@@ -221,6 +222,8 @@ class RBTree:
         '''
         prob_node = del_node #potentially problematic node, to be replaced by sol_node
         pn_col = prob_node.color
+
+        print("delete::{}".format(del_node))
 
         #removing the last node in the tree
         if del_node is self.root and del_node.left is self.NIL and del_node.right is self.NIL:
@@ -234,6 +237,7 @@ class RBTree:
 
         #(n)one child: move the subtree to the del_node.left to del_node    
         elif del_node.right is self.NIL:
+
             sol_node = del_node.left
             self._transplant(del_node, del_node.left)
 
@@ -366,7 +370,7 @@ class RBTree:
             root_node = self.root
         cur = root_node
         while cur is not self.NIL:
-            if cur.data is data:
+            if cur is data:
                 return cur
             elif data < cur:
                 cur = cur.left
@@ -374,8 +378,7 @@ class RBTree:
                 cur = cur.right
         return self.NIL
 
-
-    def search_val(self, val, root_node=None):
+    def search_coarse_val(self, val, root_node=None):
         '''
         particular to the beachfront implementation, kind of
         given a value, return the internal node whose breakpoint is as close
@@ -387,13 +390,13 @@ class RBTree:
         if not root_node:
             root_node = self.root
 
-        if val < root_node:
+        if (root_node - val) > EPSILON:
             if root_node.left is not self.NIL:
                 return self.search_val(val, root_node.left)
             else:
                 return root_node
 
-        elif val > root_node: 
+        elif (val - root_node.next) > EPSILON: 
             if root_node.right is not self.NIL:
                 return self.search_val(val, root_node.right)
             else:
@@ -402,13 +405,61 @@ class RBTree:
             return root_node
 
 
+
+    def search_val(self, val, root_node=None):
+        '''
+        particular to the beachfront implementation, kind of
+        given a value, return the internal node whose breakpoint is as close
+        as possible (and less than) this value
+
+        return the arc which will be the predecessor to this arc
+        return the arc which will be the successor to this arc
+        '''
+
+        if self.is_empty():
+            return self.NIL
+
+        if not root_node:
+            root_node = self.root
+
+        cur = root_node
+        parent = cur.parent
+
+        while cur is not self.NIL:
+            parent = cur
+            if val < cur:
+                cur = cur.left
+
+            elif val > cur:
+                cur = cur.right
+
+        return parent
+
+
+
+
+        # if val < root_node:
+        #     if root_node.left is not self.NIL:
+        #         return self.search_val(val, root_node.left)
+        #     else:
+        #         return root_node
+
+        # elif val > root_node: 
+        #     if root_node.right is not self.NIL:
+        #         return self.search_val(val, root_node.right)
+        #     else:
+        #         return root_node
+        # else:
+        #     return root_node
+
+
     def remove(self, data, root_node=None):
         if not root_node:
             root_node = self.root
 
         del_node = self.search(data)
         if del_node:
-            self._delete(del_node)
+            self.delete(del_node)
         else:
             print("Node with {} was not in tree".format(data))
 
@@ -488,6 +539,23 @@ class RBTree:
             r_tree = self.inorder(root_node.right)
 
             return l_tree + [root_node] + r_tree 
+
+    def internal_leaves(self, root_node=None):
+        if self.is_empty():
+            return []
+
+        if not root_node:
+            root_node = self.root
+
+        if root_node.left is self.NIL and root_node.right is self.NIL:
+            return [root_node]
+
+        else:
+            l_tree = self.internal_leaves(root_node.left)
+            r_tree = self.internal_leaves(root_node.right)
+
+            return l_tree + r_tree
+
 
     def level_order(self, root_node=None):
         if self.is_empty():

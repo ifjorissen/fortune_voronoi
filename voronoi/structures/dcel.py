@@ -84,6 +84,15 @@ class Edge():
         self.cell = f
         o.edges[(s1, s2)] = self
 
+    @property
+    def dest(self):
+        return self.twin.source
+
+    @dest.setter
+    def dest(self, vertex):
+        self.twin.source = vertex
+    
+
     def angle(self):
         ''' given an edge, calculate its angle based on its sites'''
         dx = self.s2.x - self.s1.x
@@ -363,6 +372,7 @@ class VoronoiDCEL():
         v = self.addVertex(circle)
         log.debug("Handling circle {} added {} to {}.vertices".format(
             circle, v, self))
+        return v
 
     def finish(self):
         finish_str = "\n\n----**** voronoi finish ****----"
