@@ -225,6 +225,16 @@ class RBTree:
 
         print("delete::{}".format(del_node))
 
+        #update next and previous pointers (special RB behavior)
+        if del_node.next is not self.NIL:
+            del_node.next.prev = del_node.prev
+        if del_node.prev is not self.NIL:
+            del_node.prev.next = del_node.next
+        del_node.next = self.NIL #or NONE?
+        del_node.prev = self.NIL
+        #end special adjustments
+
+
         #removing the last node in the tree
         if del_node is self.root and del_node.left is self.NIL and del_node.right is self.NIL:
             self.root = self.NIL
@@ -322,6 +332,7 @@ class RBTree:
         else:
             cur = root_node
 
+        #some special adjustments for this RB tree (insert after, prev and next pointers)
         if after and after is not self.NIL:
             # print("inserting new_node {} after: {}".format(new_node, after)) 
             new_node.prev = after
@@ -337,6 +348,7 @@ class RBTree:
             else:
                 after.right = new_node
             new_node.parent = after
+        #end special adjustments
         else:
             # find the right location for this node
             while cur is not self.NIL:
@@ -519,10 +531,46 @@ class RBTree:
 
 
     #presentation & info funcs
-    def count_internal_nodes(self):
-        pass
+    def print_level_order(self):
+        #not the bfs version
+        h = self.height()
+        for level in range(1, h+1):
+            lvl = self.get_level(self.root, level)
+            print("level {}: {} ".format(level, lvl))
+
+    def get_level(self, root_node, level):
+        if root_node is None:
+            return
+
+        if level == 1:
+            return [root_node],
+
+        elif level > 1 :
+            return self.get_level(root_node.left , level-1) + self.get_level(root_node.right , level-1)
+            # printGivenLevel(root.left , level-1)
+            # printGivenLevel(root.right , level-1)
+
+    def height(self, root_node=None):
+        if root_node is None:
+            root_node = self.root
+
+        if root_node is self.NIL:
+            return 0
+        else: 
+            lheight = self.height(root_node.left)
+            rheight = self.height(root_node.right)
+     
+            if lheight > rheight :
+                return lheight+1
+            else:
+                return rheight+1
 
     def black_height(self):
+        pass
+
+
+
+    def count_internal_nodes(self):
         pass
 
     def inorder(self, root_node=None):
@@ -556,16 +604,6 @@ class RBTree:
 
             return l_tree + r_tree
 
-
-    def level_order(self, root_node=None):
-        if self.is_empty():
-            return []
-
-        if not root_node:
-            root_node = self.root
-
-        if root_node is self.NIL:
-            return []
 
     def is_empty(self):
         if self.root is self.NIL:

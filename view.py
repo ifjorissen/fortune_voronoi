@@ -7,6 +7,7 @@ from voronoi.geom.geometry import point, vector
 from random import choice
 from ctypes import *
 
+# from glfw import *
 from OpenGL.GL import *
 from OpenGL.GLUT import *
 from OpenGL.GLUT.freeglut import *
@@ -150,7 +151,6 @@ def draw():
     glUseProgram(0)
     if V.sites:
         parabola_ctlpts = V.parabolasToBuffer()  
-        # glClear(GL_COLOR_BUFFER_BIT)
 
         glPushAttrib(GL_ALL_ATTRIB_BITS)
         glColor3f(0.72, 0.32, 0)
@@ -227,7 +227,6 @@ def draw():
         glDisableVertexAttribArray(posAL)
         glDisableVertexAttribArray(colorAL)
     glDisable(GL_LINE_SMOOTH)
-    glutSwapBuffers()
 
     # # * * * * * * * * * * * * * * * *
     # # Draw all the voronoi ctl sites.
@@ -257,7 +256,35 @@ def draw():
 
     # # * * * * * * * * * * * * * * * *
     # # Draw delaunay edges
-    # if D.face and showDelaunay:
+    if D.face and showDelaunay:
+        shs = line_shaders
+        glUseProgram(shs)
+        glLineWidth(3)
+        colorAL = glGetAttribLocation(shs, 'a_color')
+        posAL = glGetAttribLocation(shs, 'a_position')
+
+        # all the vertex positions
+        glEnableVertexAttribArray(posAL)
+        glBindBuffer(GL_ARRAY_BUFFER, del_edge_buffer)
+        glVertexAttribPointer(posAL, 3, GL_FLOAT, GL_FALSE, 0, None)
+
+        # all the vertex colors
+        glEnableVertexAttribArray(colorAL)
+        glBindBuffer(GL_ARRAY_BUFFER, del_edge_color_buffer)
+        glVertexAttribPointer(colorAL, 3, GL_FLOAT, GL_FALSE, 0, None)
+
+        for i in range(0, len(D.face)):
+            glDrawArrays(GL_LINE_LOOP, 3 * i, 3)
+        # glDrawArrays(GL_TRIANGLES, 0, len(D.face)*2)
+        glDisableVertexAttribArray(posAL)
+        glDisableVertexAttribArray(colorAL)
+
+    # # * * * * * * * * * * * * * * * *
+    # # Draw voronoi edges
+    # if V and V.edgeDCEL.edges:
+    #     # if not finished:
+    #     #     V.finishScan()
+    #     #     finished = True
     #     shs = line_shaders
     #     glUseProgram(shs)
     #     glLineWidth(3)
@@ -266,45 +293,17 @@ def draw():
 
     #     # all the vertex positions
     #     glEnableVertexAttribArray(posAL)
-    #     glBindBuffer(GL_ARRAY_BUFFER, del_edge_buffer)
+    #     glBindBuffer(GL_ARRAY_BUFFER, vedge_buffer)
     #     glVertexAttribPointer(posAL, 3, GL_FLOAT, GL_FALSE, 0, None)
 
     #     # all the vertex colors
     #     glEnableVertexAttribArray(colorAL)
-    #     glBindBuffer(GL_ARRAY_BUFFER, del_edge_color_buffer)
+    #     glBindBuffer(GL_ARRAY_BUFFER, vedge_color_buffer)
     #     glVertexAttribPointer(colorAL, 3, GL_FLOAT, GL_FALSE, 0, None)
 
-    #     for i in range(0, len(D.face)):
-    #         glDrawArrays(GL_LINE_LOOP, 3 * i, 3)
-    #     # glDrawArrays(GL_TRIANGLES, 0, len(D.face)*2)
+    #     glDrawArrays(GL_LINES, 0, len(V.edgeDCEL.edges) * 2)
     #     glDisableVertexAttribArray(posAL)
     #     glDisableVertexAttribArray(colorAL)
-
-    # # * * * * * * * * * * * * * * * *
-    # # Draw voronoi edges
-    # # if V:
-    # #     if not finished:
-    # #         V.finishScan()
-    # #         finished = True
-    # #     shs = line_shaders
-    # #     glUseProgram(shs)
-    # #     glLineWidth(3)
-    # #     colorAL = glGetAttribLocation(shs, 'a_color')
-    # #     posAL = glGetAttribLocation(shs, 'a_position')
-
-    # #     # all the vertex positions
-    # #     glEnableVertexAttribArray(posAL)
-    # #     glBindBuffer(GL_ARRAY_BUFFER, vedge_buffer)
-    # #     glVertexAttribPointer(posAL, 3, GL_FLOAT, GL_FALSE, 0, None)
-
-    # #     # all the vertex colors
-    # #     glEnableVertexAttribArray(colorAL)
-    # #     glBindBuffer(GL_ARRAY_BUFFER, vedge_color_buffer)
-    # #     glVertexAttribPointer(colorAL, 3, GL_FLOAT, GL_FALSE, 0, None)
-
-    # #     glDrawArrays(GL_LINES, 0, len(V.edgeDCEL.edges) * 2)
-    # #     glDisableVertexAttribArray(posAL)
-    # #     glDisableVertexAttribArray(colorAL)
 
     # # * * * * * * * * * * * * * * * *
     # # Draw voronoi vertices
@@ -337,6 +336,7 @@ def draw():
     # Render the scene.
     glFlush()
     glutSwapBuffers()
+    # glfwPollEvents()
 
 
 def keypress(key, x, y):
@@ -548,9 +548,9 @@ def tick(val):
         update_delaunay_buffers()
         # update_vedge_buffers()
         glutPostRedisplay()
-        glutTimerFunc(30, tick, val)
+        glutTimerFunc(20, tick, val)
     else:
-        glutTimerFunc(30, tick, val)
+        glutTimerFunc(20, tick, val)
     # if V.scanning and not V.scanFinished():
         # if val:
         #     val = not val

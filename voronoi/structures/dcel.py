@@ -95,6 +95,7 @@ class Edge():
 
     def angle(self):
         ''' given an edge, calculate its angle based on its sites'''
+        print("edgedcel_angle:: s1: {}; s2: {}".format(self.s1, self.s2))
         dx = self.s2.x - self.s1.x
         dy = self.s2.y - self.s1.y
 
@@ -211,6 +212,7 @@ class VoronoiDCEL():
         return v
 
     def addEdge(self, left_site, right_site, src=None):
+        print("\nedgedcel_addEdge:: left site: {}, right_site: {} source: {}".format(left_site, right_site, src))
         edge = Edge(left_site, right_site, src, self)
         return edge
 
@@ -218,7 +220,7 @@ class VoronoiDCEL():
         s1 = v.sites[0]
         s2 = v.sites[1]
         s3 = v.sites[2]
-        print(type(s1))
+        # print(type(s1))
         e1 = Edge(s1, s2, v, self)
         e2 = Edge(s2, s3, v, self)
         e3 = Edge(s3, s1, v, self)
@@ -447,6 +449,7 @@ class VoronoiDCEL():
 
     def edgesToBuffer(self):
         # return the edge buffer
+        self.clipEdges()
         edges = []
         colors = []
         for edge in self.edges.values():

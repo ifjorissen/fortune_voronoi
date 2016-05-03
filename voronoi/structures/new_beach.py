@@ -138,7 +138,7 @@ class BeachNode(Node):
 
     def __repr__(self):
         if self.site:
-            return "\n\t(beach: {}; id:{}; color:{}; bkpt: {}; \n\t\t left: ({}); \n\t\t right: ({}); \n\t\t prev: ({}, {}); \n\t\tnext: ({}, {});)\n".format(self.site, self.id, self.color, self._bkpt, self.left.site, self.right.site, self.prev.site, self.prev.id, self.next.site, self.next.id)
+            return "\n\t(beach: {}; id:{}; color:{}; bkpt: {}; \n\t\t left: ({}); \n\t\t right: ({}); \n\t\t prev: ({}, {}); \n\t\tnext: ({}, {});\n\t\tcircle: {} edge: {})\n".format(self.site, self.id, self.color, self._bkpt, self.left.site, self.right.site, self.prev.site, self.prev.id, self.next.site, self.next.id, self.circle, self.edge)
             # return "\n\t(beach: {}; color:{}; bkpt: {}; \n\t\t left: ({}); \n\t\t right: ({}); \n\t\t prev: ({}); \n\t\tnext: ({});)\n".format(self.site, self.color, self._bkpt, self.left, self.right, self.prev.site, self.next.site)
         else:
             return "\n\t (beach: NIL node)"
@@ -158,7 +158,13 @@ class BeachNode(Node):
         elif isinstance(other, BeachNode):
             if self.bkpt < other.bkpt:
                 return True
-        
+
+        # elif isinstance(other, Circle):
+        #     if self.site:
+        #         if self.site.y < circle.y 
+            
+        #     else:
+        #         print("BeachNode __lt__::you should raise an exception")
         return False
 
     def __gt__(self, other):

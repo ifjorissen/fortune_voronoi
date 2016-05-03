@@ -231,6 +231,7 @@ class Voronoi:
 
     def parabolasToBuffer(self):
         #get the control points for each site
+        self.beachfront.print_level_order()
         ctl_pts = []
         directrix = self.y_pos
         self.updateBeachfront(directrix)
@@ -426,18 +427,29 @@ class Voronoi:
 
         else:
             circle = event
+            deleted_arcs = []
+
             print("circle event: c.y {} directrix: {}".format(circle.y, directrix))
             process_str += "\nCircle EVENT: \n\tcircle event @(cx{}, cy{}), sy{}".format(
                 circle.c.x, circle.c.y, directrix)
+            print("processEventCircle::beachfront before\n {}".format(self.beachfront))
 
             arc = circle.arc
             prev_arc = arc.prev
             next_arc = arc.next
 
-            #remove the arc, add vertex in dcel
-            self.beachfront.delete(arc)
+            #add vertex in dcel
             new_vert = self.edgeDCEL.handleCircle(circle)
 
+            #update edge destinations
+            arc.edge.dest = new_vert
+            next_arc.edge.dest = new_vert
+            # arc.edge.next = next_arc.twin
+
+            #remove arc
+
+            self.beachfront.delete(arc)
+            print("processEventCircle::beachfront after\n {}".format(self.beachfront))
             #remove circle events for neighboring arcs since they are no longer valid
             if prev_arc.circle:
                 self.event_pq.remove(prev_arc.circle)
@@ -445,12 +457,6 @@ class Voronoi:
             if next_arc.circle:
                 self.event_pq.remove(next_arc.circle)
                 next_arc.circle = None
-
-
-
-            #update edge destinations
-            prev_arc.edge.dest = new_vert
-            next_arc.edge = new_vert
 
             #add a new edge
             new_edge = self.edgeDCEL.addEdge(prev_arc.site, next_arc.site, new_vert)
@@ -481,9 +487,11 @@ class Voronoi:
             self.edgeDCEL.setBounds(self.bounds)
 
             while (not self.event_pq.empty()):
+                print("\nprocessEvent::event_pq")
                 print(self.event_pq)
                 event = self.event_pq.get()
-                self.processEvent(event)
+                if event.y > self.y_pos:
+                    self.processEvent(event)
 
             print("queue is empty")
             # self.edgeDCEL.finish()

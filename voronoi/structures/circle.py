@@ -7,25 +7,25 @@ class InvalidCircle(Exception):
     def __init__(self, sites):
         self.sites = sites
 
-    def __str__(self):
+    def __repr__(self):
         return repr([str(site) for site in self.sites])
 
 class CircleAboveSweepline(Exception):
 
-    def __init__(self, sweepline):
-        self.sites = sites
-        self.sweep = sweepline.y
+    def __init__(self, circle, sweepline):
+        self.sites = circle.csites()
+        self.sweep = sweepline
 
-    def __str__(self):
-        return repr([str(site) for site in self.sites] + " " +\
-            "c.low: {} scanline.y: {}".format(self.y, self.sweep))
+    def __repr__(self):
+        return repr([str(site) for site in self.sites]) + " " +\
+            "c.low: {} scanline.y: {}".format(circle.y, self.sweep)
 
 class CircleAlreadyCreated(Exception):
 
     def __init__(self, circle):
         self.sites = circle.csites()
 
-    def __str__(self):
+    def __repr__(self):
         return repr(self.sites)
 
 
@@ -106,6 +106,8 @@ class Circle:
 
     def __init__(self, arc, directrix):
         self.arc = arc
+        self.c = None
+        self.low = None
         arc.circle = self
         self.s1 = arc.prev.site
         self.s2 = arc.site
@@ -116,9 +118,18 @@ class Circle:
             self.y = self.low.y
 
 
-    def __str__(self):
-        return "cx:{}, cy:{}, clow:{}".format(
-            self.c.x, self.c.y, self.csites(), self.low)
+    def __repr__(self):
+        return "c:{}, clow:{} sites {}".format(
+            self.c, self.low, self.csites())
+
+
+    def __lt__(self, other):
+        if isinstance(other, Circle):
+            return self.y < other.y
+        else:
+            print("Circle __lt__::raise an error here or something")
+            return True
+
 
     def circleData(self):
         buf = []
