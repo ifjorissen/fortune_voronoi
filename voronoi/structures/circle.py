@@ -169,10 +169,11 @@ class Circle:
         radius = self.r
         sides = self.smoothness
         cbuf = []
+        circle_color = [1.0, .71, .75]
         for side in range(0, sides):
             ang = float(side) * 2.0 * pi / sides
             x = cos(ang) * radius + self.c.x
             y = sin(ang) * radius + self.c.y
             buf.extend([x, y, 0.0])
-            cbuf.extend([.75, .75, .75])
+            cbuf.extend(circle_color)
         return buf, cbuf

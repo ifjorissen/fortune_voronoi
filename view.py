@@ -24,7 +24,7 @@ colors = [
 ]
 # visibility keys
 showCircles = True
-showDelaunay = True
+showDelaunay = False
 showBeachfront = True
 
 # voronoi buffers
@@ -101,7 +101,8 @@ def draw():
         vvertex_buffer, vvertex_color_buffer, \
         del_edge_buffer, del_edge_color_buffer, \
         vedge_buffer, vedge_color_buffer,\
-        pt_shaders, line_shaders, finished
+        pt_shaders, line_shaders, finished, \
+        showCircles, showBeachfront, showDelaunay
 
     # Clear the rendering information.
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
@@ -241,6 +242,8 @@ def draw():
         if not finished:
             V.finishScan()
             finished = True
+            showBeachfront = False
+            showCircles = False
         shs = line_shaders
         glUseProgram(shs)
         glLineWidth(3)
@@ -481,7 +484,7 @@ def update_vedge_buffers():
 
 
 def tick(val):
-    global V
+    global V, showBeachfront, showDelaunay, showCircles
     if V.scanning and not V.scanFinished():
         if val:
             val = not val
@@ -499,17 +502,16 @@ def tick(val):
             glutTimerFunc(8, tick, val)
 
     elif V.scanFinished():
-        # V.update()
         V.scanning = False
+        showBeachfront = False
+        showCircles = False
         update_vedge_buffers()
         update_delaunay_buffers()
-        # glutTimerFunc(10, tick, 0)
         glutPostRedisplay()
 
     else:
         V.scanning = False
-        # update_beachline_buffers()
-        glutTimerFunc(10, tick, 0)
+        # glutTimerFunc(10, tick, 0)
 
 
 def init():

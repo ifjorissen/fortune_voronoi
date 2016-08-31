@@ -52,7 +52,7 @@ class Edge():
         self.next = None
         self.prev = None
         self.source = source
-        self.clip_epsilon = .15
+        self.clip_epsilon = .25
 
         # for use in edge clipping
         self.angle = self.angle()
